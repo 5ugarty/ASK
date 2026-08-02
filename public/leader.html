@@ -340,6 +340,7 @@
           ${statusPill}
           ${publicToggleBtn}
           ${readToggleBtn}
+          <button class="act-btn ghost" onclick="downloadQuestionImage('${q.qid}')">이미지 저장</button>
           <button class="act-btn danger" onclick="deleteQuestion('${q.qid}')">삭제</button>
         </div>
       </div>`;
@@ -363,6 +364,7 @@
           <span class="name mono" style="display:block; margin-top:10px; color:var(--sub); font-size:11px;">— ${a.name}</span>
         </div>
         <div class="item-actions">
+          <button class="act-btn ghost" onclick="downloadAnswerImage(${a.id})">이미지 저장</button>
           <button class="act-btn danger" onclick="deleteAnswer(${a.id})">삭제</button>
         </div>
       </div>`;
@@ -414,6 +416,255 @@
     if(!confirm('이 답변을 삭제할까요?')) return;
     await fetch(`/api/leader/answers/${id}`, { method: 'DELETE' });
     loadData();
+  }
+
+  /* =========================================================
+     질문/답변 → 1080x1080 이미지로 저장 (밴드 업로드용)
+     사이트와 동일한 흑백 티켓 디자인을 캔버스로 그대로 그려서 다운로드
+  ========================================================= */
+  const IMG_SIZE = 1080;
+  const C_INK = '#0A0A0A', C_PAPER = '#F3F3F1', C_WHITE = '#FFFFFF', C_LINE = '#C9C9C7', C_SUB = '#6E6E6C';
+
+  function drawTicketBase(ctx){
+    ctx.fillStyle = C_PAPER;
+    ctx.fillRect(0, 0, IMG_SIZE, IMG_SIZE);
+
+    ctx.fillStyle = C_LINE;
+    const gap = 34;
+    for(let y = gap/2; y < IMG_SIZE; y += gap){
+      for(let x = gap/2; x < IMG_SIZE; x += gap){
+        ctx.beginPath();
+        ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const m = 70;
+    ctx.fillStyle = C_WHITE;
+    ctx.fillRect(m, m, IMG_SIZE - m*2, IMG_SIZE - m*2);
+    ctx.strokeStyle = C_INK;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(m, m, IMG_SIZE - m*2, IMG_SIZE - m*2);
+    return m;
+  }
+
+  function drawDashedLine(ctx, x1, y, x2){
+    ctx.save();
+    ctx.strokeStyle = C_INK;
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 8]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y);
+    ctx.lineTo(x2, y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawNotches(ctx, m, y){
+    ctx.fillStyle = C_PAPER;
+    [m, IMG_SIZE - m].forEach(x=>{
+      ctx.beginPath();
+      ctx.arc(x, y, 15, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  // 글자 단위 줄바꿈 (한글 혼용 텍스트에 안전)
+  function wrapLines(ctx, text, maxWidth){
+    const lines = [];
+    let current = '';
+    for(const ch of text){
+      const test = current + ch;
+      if(ctx.measureText(test).width > maxWidth && current){
+        lines.push(current);
+        current = ch;
+      } else {
+        current = test;
+      }
+    }
+    if(current) lines.push(current);
+    return lines;
+  }
+
+  function drawWrappedText(ctx, text, centerX, centerY, maxWidth, lineHeight){
+    const lines = wrapLines(ctx, text, maxWidth);
+    const totalHeight = lines.length * lineHeight;
+    let startY = centerY - totalHeight/2 + lineHeight/2;
+    lines.forEach((line, i)=>{
+      ctx.fillText(line, centerX, startY + i*lineHeight);
+    });
+    return lines.length;
+  }
+
+  function triggerDownload(canvas, filename){
+    canvas.toBlob(blob=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }
+
+  async function downloadQuestionImage(qid){
+    const q = questions.find(x=>x.qid===qid);
+    if(!q) return;
+    await document.fonts.ready;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = IMG_SIZE; canvas.height = IMG_SIZE;
+    const ctx = canvas.getContext('2d');
+    const m = drawTicketBase(ctx);
+
+    const headY = m + 90;
+    drawDashedLine(ctx, m, headY, IMG_SIZE - m);
+    drawNotches(ctx, m, headY);
+
+    // 카테고리 뱃지
+    ctx.font = '700 26px "JetBrains Mono", monospace';
+    const tagText = q.category;
+    const tagPad = 16;
+    const tagW = ctx.measureText(tagText).width + tagPad*2;
+    const tagX = m + 40, tagY = m + 34, tagH = 44;
+    if(q.category === '단체'){
+      ctx.fillStyle = C_INK;
+      ctx.fillRect(tagX, tagY, tagW, tagH);
+      ctx.fillStyle = C_WHITE;
+    } else {
+      ctx.strokeStyle = C_INK; ctx.lineWidth = 2;
+      ctx.strokeRect(tagX, tagY, tagW, tagH);
+      ctx.fillStyle = C_INK;
+    }
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tagText, tagX + tagPad, tagY + tagH/2 + 2);
+
+    // 코드 (번호)
+    ctx.font = '700 34px "JetBrains Mono", monospace';
+    ctx.fillStyle = C_INK;
+    ctx.fillText(q.code, tagX + tagW + 24, tagY + tagH/2 + 2);
+
+    // 시각
+    ctx.font = '500 22px "JetBrains Mono", monospace';
+    ctx.fillStyle = C_SUB;
+    ctx.textAlign = 'right';
+    ctx.fillText(q.time, IMG_SIZE - m - 40, tagY + tagH/2 + 2);
+    ctx.textAlign = 'left';
+
+    // 기타 대상 표시
+    let bodyTop = headY + 70;
+    if(q.category === '기타' && q.target){
+      ctx.font = '600 24px "JetBrains Mono", monospace';
+      ctx.fillStyle = C_SUB;
+      ctx.textAlign = 'center';
+      ctx.fillText(`TO. ${q.target}`, IMG_SIZE/2, bodyTop);
+      ctx.textAlign = 'left';
+      bodyTop += 50;
+    }
+
+    // 질문 본문
+    ctx.font = '700 46px "Noto Sans KR", sans-serif';
+    ctx.fillStyle = C_INK;
+    ctx.textAlign = 'center';
+    const bodyBottom = IMG_SIZE - m - 90;
+    const bodyCenterY = (bodyTop + bodyBottom) / 2;
+    drawWrappedText(ctx, q.text, IMG_SIZE/2, bodyCenterY, IMG_SIZE - m*2 - 100, 62);
+    ctx.textAlign = 'left';
+
+    // 하단 브랜딩
+    ctx.font = '400 20px "Bebas Neue", sans-serif';
+    ctx.fillStyle = C_SUB;
+    ctx.textAlign = 'center';
+    ctx.letterSpacing = '2px';
+    ctx.fillText('YCC ASK', IMG_SIZE/2, IMG_SIZE - m - 34);
+    ctx.textAlign = 'left';
+    ctx.letterSpacing = '0px';
+
+    triggerDownload(canvas, `${q.qid}.png`);
+  }
+
+  async function downloadAnswerImage(id){
+    const a = answers.find(x=>x.id===id);
+    if(!a) return;
+    await document.fonts.ready;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = IMG_SIZE; canvas.height = IMG_SIZE;
+    const ctx = canvas.getContext('2d');
+    const m = drawTicketBase(ctx);
+
+    const headY = m + 90;
+    drawDashedLine(ctx, m, headY, IMG_SIZE - m);
+    drawNotches(ctx, m, headY);
+
+    // 뱃지
+    ctx.font = '700 26px "JetBrains Mono", monospace';
+    const tagText = '익명 답변';
+    const tagPad = 16;
+    const tagW = ctx.measureText(tagText).width + tagPad*2;
+    const tagX = m + 40, tagY = m + 34, tagH = 44;
+    ctx.strokeStyle = C_INK; ctx.lineWidth = 2;
+    ctx.strokeRect(tagX, tagY, tagW, tagH);
+    ctx.fillStyle = C_INK;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tagText, tagX + tagPad, tagY + tagH/2 + 2);
+
+    ctx.font = '500 22px "JetBrains Mono", monospace';
+    ctx.fillStyle = C_SUB;
+    ctx.textAlign = 'right';
+    ctx.fillText(a.time, IMG_SIZE - m - 40, tagY + tagH/2 + 2);
+    ctx.textAlign = 'left';
+
+    // 원 질문 (인용 박스)
+    const qBoxX = m + 40, qBoxY = headY + 40, qBoxW = IMG_SIZE - m*2 - 80;
+    ctx.font = '500 26px "Noto Sans KR", sans-serif';
+    const qLines = wrapLines(ctx, a.questionText, qBoxW - 48);
+    const qLineHeight = 38;
+    const qBoxH = 36 + qLines.length * qLineHeight + 20;
+
+    ctx.fillStyle = C_PAPER;
+    ctx.fillRect(qBoxX, qBoxY, qBoxW, qBoxH);
+    ctx.save();
+    ctx.strokeStyle = C_LINE; ctx.lineWidth = 2; ctx.setLineDash([8,6]);
+    ctx.strokeRect(qBoxX, qBoxY, qBoxW, qBoxH);
+    ctx.restore();
+
+    ctx.font = '600 18px "JetBrains Mono", monospace';
+    ctx.fillStyle = C_SUB;
+    ctx.fillText('원 질문', qBoxX + 24, qBoxY + 26);
+
+    ctx.font = '500 26px "Noto Sans KR", sans-serif';
+    ctx.fillStyle = C_SUB;
+    qLines.forEach((line, i)=>{
+      ctx.fillText(line, qBoxX + 24, qBoxY + 60 + i*qLineHeight);
+    });
+
+    // 답변 본문
+    const bodyTop = qBoxY + qBoxH + 50;
+    const bodyBottom = IMG_SIZE - m - 130;
+    ctx.font = '700 44px "Noto Sans KR", sans-serif';
+    ctx.fillStyle = C_INK;
+    ctx.textAlign = 'center';
+    drawWrappedText(ctx, a.answerText, IMG_SIZE/2, (bodyTop+bodyBottom)/2, IMG_SIZE - m*2 - 100, 60);
+    ctx.textAlign = 'left';
+
+    // 서명 (랜덤 이름)
+    ctx.font = '600 26px "JetBrains Mono", monospace';
+    ctx.fillStyle = C_SUB;
+    ctx.textAlign = 'right';
+    ctx.fillText(`— ${a.name}`, IMG_SIZE - m - 40, IMG_SIZE - m - 90);
+    ctx.textAlign = 'left';
+
+    // 하단 브랜딩
+    ctx.font = '400 20px "Bebas Neue", sans-serif';
+    ctx.fillStyle = C_SUB;
+    ctx.textAlign = 'center';
+    ctx.fillText('YCC ASK', IMG_SIZE/2, IMG_SIZE - m - 34);
+    ctx.textAlign = 'left';
+
+    triggerDownload(canvas, `answer-${a.id}.png`);
   }
 </script>
 
