@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>YCC ASK · LEADER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A0A0A; --paper:#F3F3F1; --white:#FFFFFF; --line:#C9C9C7; --sub:#6E6E6C;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Noto Sans KR', sans-serif; -webkit-font-smoothing:antialiased;
+  }
+  body{
+    background-image: radial-gradient(var(--line) 1px, transparent 1px);
+    background-size: 16px 16px; min-height:100vh;
+  }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  .display{ font-family:'Bebas Neue', sans-serif; letter-spacing:0.02em; }
+
+  #login-screen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .login-card{ width:100%; max-width:340px; background:var(--white); border:2px solid var(--ink); padding:28px 22px; text-align:center; }
+  .login-card .display{ font-size:30px; margin-bottom:4px; }
+  .login-card .sub{ font-size:11px; color:var(--sub); font-family:'JetBrains Mono', monospace; margin-bottom:24px; letter-spacing:0.05em;}
+  .login-card input{
+    width:100%; border:1.5px solid var(--ink); padding:12px 14px;
+    font-family:'JetBrains Mono', monospace; font-size:15px; letter-spacing:0.1em;
+    text-align:center; margin-bottom:12px;
+  }
+  .login-card input:focus{ outline:2px solid var(--ink); outline-offset:2px; }
+  .login-card .btn-unlock{
+    width:100%; background:var(--ink); color:var(--white); border:none; padding:13px;
+    font-family:'Bebas Neue', sans-serif; font-size:17px; letter-spacing:0.06em; cursor:pointer;
+  }
+  .login-card .btn-unlock:disabled{ background:var(--line); cursor:not-allowed; }
+  .login-card .err{
+    display:none; color:var(--ink); font-size:11px; font-family:'JetBrains Mono', monospace;
+    margin-top:10px; padding:8px; background:var(--paper); border:1px dashed var(--line);
+  }
+  .login-card .err.show{ display:block; }
+
+  #leader-screen{ display:none; }
+  #leader-screen.show{ display:block; }
+
+  header{
+    position:sticky; top:0; z-index:20; background:var(--paper);
+    border-bottom:2px solid var(--ink); padding:14px 18px;
+  }
+  .header-row{ display:flex; align-items:center; justify-content:space-between; }
+  .brand{ display:flex; align-items:baseline; gap:8px; }
+  .brand .display{ font-size:24px; }
+  .brand .tag{ font-size:10px; color:var(--sub); border:1px solid var(--line); padding:2px 6px; border-radius:2px; }
+  .btn-logout{
+    background:none; border:1.5px solid var(--ink); padding:6px 12px;
+    font-size:11px; font-family:'JetBrains Mono', monospace; cursor:pointer;
+  }
+  .btn-logout:hover{ background:var(--ink); color:var(--white); }
+
+  .main-tabs{ display:flex; border-bottom:2px solid var(--ink); max-width:520px; margin:0 auto; }
+  .main-tab{
+    flex:1; text-align:center; padding:12px 0;
+    font-family:'Bebas Neue', sans-serif; font-size:18px; letter-spacing:0.05em;
+    color:var(--sub); cursor:pointer; border-right:1.5px solid var(--ink); position:relative;
+  }
+  .main-tab:last-child{ border-right:none; }
+  .main-tab.active{ color:var(--ink); background:var(--white); }
+  .main-tab .count{ font-family:'JetBrains Mono', monospace; font-size:10px; margin-left:5px; color:var(--sub); }
+  .main-tab.active .count{ color:var(--ink); }
+
+  main{ max-width:520px; margin:0 auto; padding:18px 16px 60px; }
+
+  .sub-tabs{ display:flex; gap:8px; margin-bottom:16px; }
+  .sub-tab{
+    font-family:'JetBrains Mono', monospace; font-size:12px; padding:6px 12px;
+    border:1.5px solid var(--line); background:var(--white); cursor:pointer; color:var(--sub);
+  }
+  .sub-tab.active{ border-color:var(--ink); color:var(--ink); background:var(--paper); font-weight:700; }
+
+  .panel{ display:none; }
+  .panel.show{ display:block; }
+
+  .empty-state{
+    text-align:center; padding:40px 16px; color:var(--sub); font-size:13px; border:1.5px dashed var(--line);
+  }
+  .loading-state{ text-align:center; padding:40px 16px; color:var(--sub); font-size:13px; font-family:'JetBrains Mono', monospace; }
+
+  .item-list{ display:flex; flex-direction:column; gap:14px; }
+
+  .item-card{ background:var(--white); border:2px solid var(--ink); position:relative; }
+  .item-card .notch{ position:absolute; top:47px; width:14px; height:14px; background:var(--paper); border-radius:50%; transform:translateY(-50%); }
+  .item-card .notch.left{ left:-7px; }
+  .item-card .notch.right{ right:-7px; }
+
+  .item-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 14px; border-bottom:1.5px dashed var(--ink);
+  }
+  .item-head .code-group{ display:flex; align-items:center; gap:8px; }
+  .item-head .code{ font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:700; }
+  .item-head .cat-tag{
+    font-size:9px; font-family:'JetBrains Mono', monospace; padding:2px 6px;
+    border:1px solid var(--ink); color:var(--ink);
+  }
+  .item-head .cat-tag.단체{ background:var(--ink); color:var(--white); border-color:var(--ink); }
+  .item-head .time{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--sub); }
+
+  .item-body{ padding:14px; font-size:14px; line-height:1.55; font-weight:500; }
+  .item-body .etc-target{ display:block; font-size:11px; color:var(--sub); font-family:'JetBrains Mono', monospace; margin-bottom:6px; }
+
+  .item-linked-q{
+    margin:0 14px 12px; padding:10px 12px; background:var(--paper); border:1px dashed var(--line);
+    font-size:12px; color:var(--sub);
+  }
+  .item-linked-q .lbl{ font-family:'JetBrains Mono', monospace; font-size:9px; display:block; margin-bottom:4px; }
+  .item-linked-q .name{
+    font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--ink);
+    display:inline-block; margin-top:6px; border-top:1px dashed var(--line); padding-top:6px; width:100%;
+  }
+
+  .item-actions{ display:flex; flex-wrap:wrap; gap:8px; padding:12px 14px 14px; border-top:1px solid var(--line); }
+  .act-btn{
+    font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:700; padding:7px 12px;
+    border:1.5px solid var(--ink); background:var(--white); color:var(--ink); cursor:pointer;
+  }
+  .act-btn:hover{ background:var(--ink); color:var(--white); }
+  .act-btn.primary{ background:var(--ink); color:var(--white); }
+  .act-btn.primary:hover{ background:var(--white); color:var(--ink); }
+  .act-btn.danger{ border-color:var(--sub); color:var(--sub); }
+  .act-btn.danger:hover{ background:var(--sub); color:var(--white); }
+  .act-btn.ghost{ border-color:var(--line); color:var(--sub); }
+  .act-btn.ghost:hover{ background:var(--paper); color:var(--ink); border-color:var(--ink); }
+
+  .status-pill{
+    font-family:'JetBrains Mono', monospace; font-size:10px; padding:4px 9px;
+    border:1px solid var(--ink); display:inline-flex; align-items:center; gap:5px;
+  }
+  .status-pill.public::before{ content:'●'; font-size:8px; }
+  .status-pill.private{ color:var(--sub); border-color:var(--line); }
+  .status-pill.private::before{ content:'○'; font-size:8px; }
+
+  footer{
+    max-width:520px; margin:0 auto; padding: 20px 16px 40px; text-align:center;
+    font-size:10px; color:var(--sub); font-family:'JetBrains Mono', monospace; border-top:1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="display">YCC ASK</div>
+    <div class="sub">LEADER ACCESS ONLY</div>
+    <input type="password" id="pw-input" placeholder="비밀번호" autocomplete="off">
+    <button class="btn-unlock" id="unlock-btn">입장</button>
+    <div class="err" id="login-err">비밀번호가 올바르지 않아요.</div>
+  </div>
+</div>
+
+<div id="leader-screen">
+  <header>
+    <div class="header-row">
+      <div class="brand">
+        <span class="display">YCC ASK</span>
+        <span class="tag mono">LEADER</span>
+      </div>
+      <button class="btn-logout" id="logout-btn">로그아웃</button>
+    </div>
+  </header>
+
+  <div class="main-tabs">
+    <div class="main-tab active" data-tab="inbox">질문함<span class="count mono" id="inbox-count"></span></div>
+    <div class="main-tab" data-tab="answers">답변함<span class="count mono" id="answers-count"></span></div>
+  </div>
+
+  <main>
+    <div class="panel show" id="panel-inbox">
+      <div class="sub-tabs">
+        <div class="sub-tab active" data-sub="unread">미확인<span class="mono" id="unread-count"></span></div>
+        <div class="sub-tab" data-sub="read">확인함<span class="mono" id="read-count"></span></div>
+      </div>
+
+      <div class="panel show" id="sub-unread">
+        <div class="item-list" id="unread-list"><div class="loading-state">불러오는 중…</div></div>
+      </div>
+      <div class="panel" id="sub-read">
+        <div class="item-list" id="read-list"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-answers">
+      <div class="item-list" id="answers-list"></div>
+    </div>
+  </main>
+
+  <footer>YCC ASK — LEADER PANEL</footer>
+</div>
+
+<script>
+  let questions = [];
+  let answers = [];
+
+  /* ---------------- 로그인 ---------------- */
+  const pwInput = document.getElementById('pw-input');
+  const unlockBtn = document.getElementById('unlock-btn');
+  const loginErr = document.getElementById('login-err');
+
+  async function tryEnter(){
+    const pw = pwInput.value;
+    if(!pw) return;
+    unlockBtn.disabled = true;
+    loginErr.classList.remove('show');
+    try{
+      const res = await fetch('/api/leader/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+      });
+      if(res.ok){
+        showLeader();
+      } else {
+        loginErr.classList.add('show');
+      }
+    }catch(e){
+      loginErr.textContent = '네트워크 오류가 발생했어요.';
+      loginErr.classList.add('show');
+    }finally{
+      unlockBtn.disabled = false;
+    }
+  }
+  unlockBtn.addEventListener('click', tryEnter);
+  pwInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') tryEnter(); });
+
+  document.getElementById('logout-btn').addEventListener('click', async ()=>{
+    try{ await fetch('/api/leader/logout', { method: 'POST' }); }catch(e){}
+    document.getElementById('leader-screen').classList.remove('show');
+    document.getElementById('login-screen').style.display = 'flex';
+    pwInput.value = '';
+  });
+
+  function showLeader(){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('leader-screen').classList.add('show');
+    loadData();
+  }
+
+  // 로그인 유지 확인 (쿠키 기반)
+  (async ()=>{
+    try{
+      const res = await fetch('/api/leader/check');
+      const result = await res.json();
+      if(result.authenticated) showLeader();
+    }catch(e){}
+  })();
+
+  /* ---------------- 탭 전환 ---------------- */
+  document.querySelectorAll('.main-tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.main-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-inbox').classList.toggle('show', tab.dataset.tab==='inbox');
+      document.getElementById('panel-answers').classList.toggle('show', tab.dataset.tab==='answers');
+    });
+  });
+  document.querySelectorAll('.sub-tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('sub-unread').classList.toggle('show', tab.dataset.sub==='unread');
+      document.getElementById('sub-read').classList.toggle('show', tab.dataset.sub==='read');
+    });
+  });
+
+  /* ---------------- 데이터 로드 ---------------- */
+  async function loadData(){
+    try{
+      const res = await fetch('/api/leader/data');
+      if(res.status === 401){
+        document.getElementById('leader-screen').classList.remove('show');
+        document.getElementById('login-screen').style.display = 'flex';
+        return;
+      }
+      const data = await res.json();
+      questions = data.questions || [];
+      answers = data.answers || [];
+      render();
+    }catch(e){
+      console.error('데이터 로드 실패', e);
+    }
+  }
+
+  function escapeHTML(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function catTagClass(cat){ return cat === '단체' ? 'cat-tag 단체' : 'cat-tag'; }
+
+  function questionCardHTML(q){
+    const isAnon = q.category === '익명';
+    let publicToggleBtn = '';
+    if(isAnon){
+      publicToggleBtn = q.public
+        ? `<button class="act-btn ghost" onclick="setPublic('${q.qid}', false)">비공개 전환</button>`
+        : `<button class="act-btn primary" onclick="setPublic('${q.qid}', true)">승인 (공개)</button>`;
+    }
+    const readToggleBtn = q.status === 'unread'
+      ? `<button class="act-btn" onclick="setStatus('${q.qid}', 'read')">확인</button>`
+      : `<button class="act-btn ghost" onclick="setStatus('${q.qid}', 'unread')">미확인으로</button>`;
+
+    const etcLine = q.category === '기타' ? `<span class="etc-target">TO. ${escapeHTML(q.target)}</span>` : '';
+    const statusPill = isAnon
+      ? `<span class="status-pill ${q.public ? 'public' : 'private'}">${q.public ? '공개중' : '비공개'}</span>`
+      : '';
+
+    return `
+      <div class="item-card" data-qid="${q.qid}">
+        <span class="notch left"></span>
+        <span class="notch right"></span>
+        <div class="item-head">
+          <div class="code-group">
+            <span class="${catTagClass(q.category)}">${q.category}</span>
+            <span class="code mono">${q.code}</span>
+          </div>
+          <span class="time mono">${q.time}</span>
+        </div>
+        <div class="item-body">
+          ${etcLine}
+          ${escapeHTML(q.text)}
+        </div>
+        <div class="item-actions">
+          ${statusPill}
+          ${publicToggleBtn}
+          ${readToggleBtn}
+          <button class="act-btn danger" onclick="deleteQuestion('${q.qid}')">삭제</button>
+        </div>
+      </div>`;
+  }
+
+  function answerCardHTML(a){
+    return `
+      <div class="item-card">
+        <span class="notch left"></span>
+        <span class="notch right"></span>
+        <div class="item-head">
+          <div class="code-group"><span class="cat-tag">익명 답변</span></div>
+          <span class="time mono">${a.time}</span>
+        </div>
+        <div class="item-linked-q">
+          <span class="lbl mono">원 질문</span>
+          ${escapeHTML(a.questionText)}
+        </div>
+        <div class="item-body">
+          ${escapeHTML(a.answerText)}
+          <span class="name mono" style="display:block; margin-top:10px; color:var(--sub); font-size:11px;">— ${a.name}</span>
+        </div>
+        <div class="item-actions">
+          <button class="act-btn danger" onclick="deleteAnswer(${a.id})">삭제</button>
+        </div>
+      </div>`;
+  }
+
+  function render(){
+    const unread = questions.filter(q=>q.status==='unread');
+    const read = questions.filter(q=>q.status==='read');
+
+    document.getElementById('unread-list').innerHTML = unread.length
+      ? unread.map(questionCardHTML).join('')
+      : `<div class="empty-state">미확인 질문이 없어요</div>`;
+
+    document.getElementById('read-list').innerHTML = read.length
+      ? read.map(questionCardHTML).join('')
+      : `<div class="empty-state">확인한 질문이 없어요</div>`;
+
+    document.getElementById('answers-list').innerHTML = answers.length
+      ? answers.map(answerCardHTML).join('')
+      : `<div class="empty-state">아직 답변이 없어요</div>`;
+
+    document.getElementById('inbox-count').textContent = `(${questions.length})`;
+    document.getElementById('answers-count').textContent = `(${answers.length})`;
+    document.getElementById('unread-count').textContent = ` (${unread.length})`;
+    document.getElementById('read-count').textContent = ` (${read.length})`;
+  }
+
+  /* ---------------- 액션 (모두 서버에 반영 후 재조회) ---------------- */
+  async function setStatus(qid, status){
+    await fetch(`/api/leader/questions/${encodeURIComponent(qid)}/status`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    loadData();
+  }
+  async function setPublic(qid, val){
+    await fetch(`/api/leader/questions/${encodeURIComponent(qid)}/public`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ public: val }),
+    });
+    loadData();
+  }
+  async function deleteQuestion(qid){
+    if(!confirm('이 질문을 삭제할까요? 연결된 답변도 함께 삭제돼요.')) return;
+    await fetch(`/api/leader/questions/${encodeURIComponent(qid)}`, { method: 'DELETE' });
+    loadData();
+  }
+  async function deleteAnswer(id){
+    if(!confirm('이 답변을 삭제할까요?')) return;
+    await fetch(`/api/leader/answers/${id}`, { method: 'DELETE' });
+    loadData();
+  }
+</script>
+
+</body>
+</html>

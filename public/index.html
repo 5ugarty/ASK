@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>YCC ASK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A0A0A;
+    --paper:#F3F3F1;
+    --white:#FFFFFF;
+    --line:#C9C9C7;
+    --sub:#6E6E6C;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Noto Sans KR', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  body{
+    background-image: radial-gradient(var(--line) 1px, transparent 1px);
+    background-size: 16px 16px;
+    min-height:100vh;
+    padding-bottom:80px;
+  }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  .display{ font-family:'Bebas Neue', sans-serif; letter-spacing:0.02em; }
+
+  header{
+    position:sticky; top:0; z-index:20;
+    background:var(--paper);
+    border-bottom:2px solid var(--ink);
+    padding:14px 18px;
+  }
+  .header-row{ display:flex; align-items:center; justify-content:space-between; }
+  .brand{ display:flex; align-items:baseline; gap:8px; }
+  .brand .display{ font-size:26px; }
+  .brand .tag{
+    font-size:10px; color:var(--sub);
+    border:1px solid var(--line); padding:2px 6px; border-radius:2px;
+  }
+  .counter-hud{
+    display:flex; align-items:center; gap:8px;
+    border:1.5px solid var(--ink);
+    padding:6px 10px;
+    background:var(--white);
+  }
+  .counter-hud .lbl{ font-size:9px; color:var(--sub); letter-spacing:0.08em;}
+  .counter-hud .num{ font-size:15px; font-weight:700; }
+  .counter-hud .dot{ width:6px; height:6px; background:var(--ink); border-radius:50%; }
+
+  main{ max-width:480px; margin:0 auto; padding:20px 16px 0; }
+
+  .section-label{ display:flex; align-items:center; gap:8px; margin: 28px 0 12px; }
+  .section-label .idx{ font-size:11px; color:var(--white); background:var(--ink); padding:2px 7px; }
+  .section-label .txt{ font-size:14px; font-weight:700; letter-spacing:0.02em;}
+  .section-label::after{ content:''; flex:1; height:1px; background:var(--line); }
+
+  .form-card{
+    background:var(--white);
+    border:2px solid var(--ink);
+    padding:20px 16px;
+    position:relative;
+  }
+  .form-card::before{
+    content:'( 질문 보내기 )';
+    position:absolute; top:-11px; left:14px;
+    background:var(--paper);
+    padding:0 8px;
+    font-size:11px; color:var(--sub);
+    font-family:'JetBrains Mono', monospace;
+  }
+  .target-group{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .target-option{
+    display:flex; align-items:center; gap:10px;
+    border:1.5px solid var(--line);
+    padding:12px 12px;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .target-option.active{ border-color:var(--ink); background:var(--paper); }
+  .target-option input[type=radio]{
+    appearance:none; -webkit-appearance:none;
+    width:18px; height:18px;
+    border:1.5px solid var(--ink);
+    border-radius:50%;
+    position:relative;
+    flex:none;
+  }
+  .target-option input[type=radio]:checked::after{
+    content:''; position:absolute; inset:3px; background:var(--ink); border-radius:50%;
+  }
+  .target-option .name{ font-weight:700; font-size:14px; }
+  .target-option .desc{ font-size:11px; color:var(--sub); }
+  .target-option .badge-preview{
+    margin-left:auto; font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--sub);
+  }
+  .etc-input{
+    display:none; margin-top:8px; width:100%;
+    border:1.5px solid var(--line); padding:10px 12px;
+    font-family:'Noto Sans KR', sans-serif; font-size:13px;
+  }
+  .etc-input.show{ display:block; }
+
+  textarea{
+    width:100%; border:1.5px solid var(--ink); padding:14px;
+    font-family:'Noto Sans KR', sans-serif; font-size:14px;
+    resize:vertical; min-height:100px; background:var(--white);
+  }
+  textarea:focus, .etc-input:focus{ outline:2px solid var(--ink); outline-offset:2px; }
+
+  .submit-row{ display:flex; justify-content:space-between; align-items:center; margin-top:14px; }
+  .char-count{ font-size:11px; color:var(--sub); font-family:'JetBrains Mono', monospace;}
+  .btn-send{
+    background:var(--ink); color:var(--white); border:none;
+    padding:12px 22px;
+    font-family:'Bebas Neue', sans-serif; font-size:16px; letter-spacing:0.05em;
+    cursor:pointer;
+  }
+  .btn-send:active{ transform:translateY(1px); }
+  .btn-send:disabled{ background:var(--line); cursor:not-allowed; }
+
+  .form-error{
+    display:none; margin-top:10px; font-size:12px; color:var(--ink);
+    background:var(--paper); border:1px dashed var(--line); padding:8px 10px;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .form-error.show{ display:block; }
+
+  .ticket-toast{
+    display:none; margin-top:16px; background:var(--ink); color:var(--white);
+    padding:16px; position:relative;
+  }
+  .ticket-toast.show{ display:block; animation:pop .25s ease; }
+  @keyframes pop{ from{ transform:scale(.96); opacity:0;} to{ transform:scale(1); opacity:1;} }
+  .ticket-toast .top-row{
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:'JetBrains Mono', monospace; font-size:11px; color:#9a9a98;
+    border-bottom:1px dashed #444; padding-bottom:10px; margin-bottom:10px;
+  }
+  .ticket-toast .code{ font-size:20px; font-weight:700; color:var(--white); font-family:'JetBrains Mono', monospace;}
+  .ticket-toast .msg{ font-size:13px; line-height:1.5; }
+  .ticket-toast .notch{ position:absolute; top:50%; width:14px; height:14px; background:var(--paper); border-radius:50%; transform:translateY(-50%); }
+  .ticket-toast .notch.left{ left:-7px; }
+  .ticket-toast .notch.right{ right:-7px; }
+
+  .feed-empty{
+    text-align:center; padding:40px 20px; color:var(--sub); font-size:13px;
+    border:1.5px dashed var(--line);
+  }
+  .feed{ display:flex; flex-direction:column; gap:16px; }
+
+  .q-ticket{ background:var(--white); border:2px solid var(--ink); position:relative; }
+  .q-ticket .stub{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:10px 14px; border-bottom:1.5px dashed var(--ink); position:relative;
+  }
+  .q-ticket .stub .code{ font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:700; }
+  .q-ticket .stub .time{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--sub); }
+  .q-ticket .notch{ position:absolute; top:-1px; width:14px; height:14px; background:var(--paper); border-radius:50%; }
+  .q-ticket .notch.left{ left:-7px; transform:translateY(-50%); top:48px; }
+  .q-ticket .notch.right{ right:-7px; transform:translateY(-50%); top:48px; }
+
+  .q-body{ padding:16px 14px 6px; font-size:15px; line-height:1.55; font-weight:500; }
+
+  .q-actions{ padding:10px 14px 14px; display:flex; align-items:center; gap:10px; }
+  .btn-answer{
+    background:var(--white); color:var(--ink); border:1.5px solid var(--ink);
+    padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+  }
+  .btn-answer:hover{ background:var(--ink); color:var(--white); }
+  .btn-answer .arrow{ font-size:13px; }
+  .btn-answer:disabled{
+    background:var(--paper); color:var(--sub); border-color:var(--line);
+    cursor:default; pointer-events:none;
+  }
+
+  .answered-flag{
+    display:none; align-items:center; gap:5px;
+    font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--sub);
+    margin-right:auto;
+  }
+  .answered-flag.show{ display:flex; }
+  .answered-flag .check{
+    width:15px; height:15px; border:1.5px solid var(--ink); border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px; color:var(--ink); flex:none;
+  }
+
+  .answer-box{ display:none; padding: 0 14px 16px; }
+  .answer-box.show{ display:block; }
+  .answer-box textarea{ min-height:70px; font-size:13px; }
+  .answer-box .submit-row{ margin-top:10px; }
+  .answer-box .btn-send{ padding:9px 16px; font-size:13px; }
+
+  .sent-note{
+    display:none; font-family:'JetBrains Mono', monospace; font-size:11px;
+    color:var(--sub); padding:8px 14px 14px;
+  }
+  .sent-note.show{ display:block; }
+
+  footer{
+    max-width:480px; margin:32px auto 0; padding: 20px 16px 40px;
+    text-align:center; font-size:10px; color:var(--sub);
+    font-family:'JetBrains Mono', monospace;
+    border-top:1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div class="brand">
+      <span class="display">YCC ASK</span>
+      <span class="tag mono">HOME</span>
+    </div>
+    <div class="counter-hud">
+      <span class="dot"></span>
+      <span class="lbl mono">누적 질문</span>
+      <span class="num mono" id="total-count">000</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <form class="form-card" id="ask-form">
+    <div class="target-group" id="target-group">
+      <label class="target-option active" data-target="단체">
+        <input type="radio" name="target" value="단체" checked>
+        <div>
+          <div class="name">단체</div>
+          <div class="desc">YCC 멤버 전체에게</div>
+        </div>
+        <span class="badge-preview mono" id="preview-단체">단체 —</span>
+      </label>
+
+      <label class="target-option" data-target="익명">
+        <input type="radio" name="target" value="익명">
+        <div>
+          <div class="name">익명</div>
+          <div class="desc">승인 시 홈에 공개되는 질문</div>
+        </div>
+        <span class="badge-preview mono" id="preview-익명">익명 —</span>
+      </label>
+
+      <label class="target-option" data-target="기타">
+        <input type="radio" name="target" value="기타">
+        <div>
+          <div class="name">기타</div>
+          <div class="desc">특정 멤버 지정</div>
+        </div>
+        <span class="badge-preview mono" id="preview-기타">기타 —</span>
+      </label>
+    </div>
+
+    <input type="text" class="etc-input" id="etc-input" placeholder="받는 사람 이름을 적어주세요">
+
+    <textarea id="question-text" placeholder="질문을 입력해주세요" maxlength="300"></textarea>
+
+    <div class="submit-row">
+      <span class="char-count"><span id="char-num">0</span>/300</span>
+      <button type="submit" class="btn-send" id="submit-btn">전송</button>
+    </div>
+
+    <div class="form-error" id="form-error"></div>
+
+    <div class="ticket-toast" id="ticket-toast">
+      <span class="notch left"></span>
+      <span class="notch right"></span>
+      <div class="top-row">
+        <span>ISSUED</span>
+        <span id="toast-time">--:--</span>
+      </div>
+      <div class="code" id="toast-code">익명 001</div>
+      <div class="msg">질문이 리더에게 전달됐어요. 익명 질문은 승인되면 홈에 공개돼요.</div>
+    </div>
+  </form>
+
+  <div class="section-label">
+    <span class="idx mono">FEED</span>
+    <span class="txt">공개된 익명 질문</span>
+  </div>
+
+  <div class="feed" id="feed">
+    <div class="feed-empty" id="feed-empty">아직 공개된 익명 질문이 없어요</div>
+  </div>
+
+</main>
+
+<footer>YCC ASK — LEADER ONLY CAN VIEW ALL SUBMISSIONS</footer>
+
+<script>
+  function pad(n){ return String(n).padStart(3,'0'); }
+
+  /* ---------------- 데이터 로드 ---------------- */
+  async function loadPublicData(){
+    try{
+      const res = await fetch('/api/public/data');
+      const data = await res.json();
+      document.getElementById('total-count').textContent = pad(data.total);
+      document.getElementById('preview-단체').textContent = '단체 ' + pad((data.counters?.단체 || 0) + 1);
+      document.getElementById('preview-익명').textContent = '익명 ' + pad((data.counters?.익명 || 0) + 1);
+      document.getElementById('preview-기타').textContent = '기타 ' + pad((data.counters?.기타 || 0) + 1);
+      renderFeed(data.publicQuestions || []);
+    }catch(e){
+      console.error('데이터 로드 실패', e);
+    }
+  }
+
+  function renderFeed(list){
+    const feed = document.getElementById('feed');
+    if(!list.length){
+      feed.innerHTML = '<div class="feed-empty">아직 공개된 익명 질문이 없어요</div>';
+      return;
+    }
+    feed.innerHTML = list.map(q => `
+      <div class="q-ticket" data-qid="${q.qid}">
+        <span class="notch left"></span>
+        <span class="notch right"></span>
+        <div class="stub">
+          <span class="code mono">${q.code}</span>
+          <span class="time mono">${q.time}</span>
+        </div>
+        <div class="q-body">${escapeHTML(q.text)}</div>
+        <div class="q-actions">
+          <span class="answered-flag"><span class="check">✓</span>내가 답변함</span>
+          <button class="btn-answer" type="button" onclick="toggleAnswer(this)">
+            <span class="btn-label">답변하기</span> <span class="arrow">→</span>
+          </button>
+        </div>
+        <div class="answer-box">
+          <textarea placeholder="답변을 입력해주세요" maxlength="300"></textarea>
+          <div class="submit-row">
+            <span class="char-count"><span class="c">0</span>/300</span>
+            <button type="button" class="btn-send" onclick="sendAnswer(this)">답변 보내기</button>
+          </div>
+        </div>
+        <div class="sent-note">답변이 리더에게 전달됐어요. 이름: <span class="rand-name"></span></div>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('.q-ticket[data-qid]').forEach(applyAnsweredState);
+    document.querySelectorAll('.answer-box textarea').forEach(ta=>{
+      ta.addEventListener('input', ()=>{
+        ta.closest('.answer-box').querySelector('.c').textContent = ta.value.length;
+      });
+    });
+  }
+
+  function escapeHTML(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  loadPublicData();
+
+  /* ---------------- 대상 선택 UI ---------------- */
+  const options = document.querySelectorAll('.target-option');
+  const etcInput = document.getElementById('etc-input');
+  options.forEach(opt=>{
+    opt.addEventListener('click', ()=>{
+      options.forEach(o=>o.classList.remove('active'));
+      opt.classList.add('active');
+      opt.querySelector('input').checked = true;
+      etcInput.classList.toggle('show', opt.dataset.target === '기타');
+    });
+  });
+
+  /* ---------------- 글자 수 카운트 ---------------- */
+  const qText = document.getElementById('question-text');
+  const charNum = document.getElementById('char-num');
+  qText.addEventListener('input', ()=>{ charNum.textContent = qText.value.length; });
+
+  /* ---------------- 질문 전송 ---------------- */
+  const form = document.getElementById('ask-form');
+  const toast = document.getElementById('ticket-toast');
+  const submitBtn = document.getElementById('submit-btn');
+  const errorBox = document.getElementById('form-error');
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    errorBox.classList.remove('show');
+    if(!qText.value.trim()) return;
+
+    const target = document.querySelector('input[name=target]:checked').value;
+    const targetName = target === '기타' ? etcInput.value.trim() : null;
+    if(target === '기타' && !targetName){
+      errorBox.textContent = '받는 사람을 입력해주세요.';
+      errorBox.classList.add('show');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    try{
+      const res = await fetch('/api/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: target, text: qText.value, target: targetName }),
+      });
+      const result = await res.json();
+      if(!res.ok){
+        errorBox.textContent = result.error || '전송에 실패했어요.';
+        errorBox.classList.add('show');
+        return;
+      }
+
+      document.getElementById('toast-code').textContent = result.code;
+      const now = new Date();
+      document.getElementById('toast-time').textContent =
+        String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+      toast.classList.add('show');
+
+      qText.value = '';
+      charNum.textContent = '0';
+      if(target === '기타') etcInput.value = '';
+
+      await loadPublicData();
+      setTimeout(()=>{ toast.classList.remove('show'); }, 3200);
+    }catch(err){
+      errorBox.textContent = '네트워크 오류가 발생했어요.';
+      errorBox.classList.add('show');
+    }finally{
+      submitBtn.disabled = false;
+    }
+  });
+
+  /* ---------------- 답변 열기/닫기 ---------------- */
+  function toggleAnswer(btn){
+    const box = btn.closest('.q-ticket').querySelector('.answer-box');
+    box.classList.toggle('show');
+  }
+
+  /* ---------------- 내가 답변한 질문 로컬 표시 (완전 익명, 서버 전송 없음) ---------------- */
+  const ANSWERED_KEY = 'ycc_ask_answered_qids';
+  function getAnsweredIds(){
+    try{ return JSON.parse(localStorage.getItem(ANSWERED_KEY) || '[]'); }catch(e){ return []; }
+  }
+  function markAnsweredLocally(qid){
+    const ids = getAnsweredIds();
+    if(!ids.includes(qid)){
+      ids.push(qid);
+      try{ localStorage.setItem(ANSWERED_KEY, JSON.stringify(ids)); }catch(e){}
+    }
+  }
+  function applyAnsweredState(ticket){
+    const qid = ticket.dataset.qid;
+    const answered = getAnsweredIds().includes(qid);
+    ticket.classList.toggle('answered', answered);
+    ticket.querySelector('.answered-flag').classList.toggle('show', answered);
+    const btn = ticket.querySelector('.btn-answer');
+    btn.querySelector('.btn-label').textContent = answered ? '답변완료' : '답변하기';
+    btn.querySelector('.arrow').style.display = answered ? 'none' : '';
+    btn.disabled = answered;
+    if(answered){ ticket.querySelector('.answer-box').classList.remove('show'); }
+  }
+
+  async function sendAnswer(btn){
+    const ticket = btn.closest('.q-ticket');
+    const textarea = ticket.querySelector('.answer-box textarea');
+    if(!textarea.value.trim()) return;
+
+    btn.disabled = true;
+    try{
+      const res = await fetch('/api/answers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qid: ticket.dataset.qid, text: textarea.value }),
+      });
+      const result = await res.json();
+      if(!res.ok){
+        alert(result.error || '답변 전송에 실패했어요.');
+        return;
+      }
+
+      const note = ticket.querySelector('.sent-note');
+      note.querySelector('.rand-name').textContent = result.name;
+      note.classList.add('show');
+
+      ticket.querySelector('.answer-box').classList.remove('show');
+      textarea.value = '';
+
+      markAnsweredLocally(ticket.dataset.qid);
+      applyAnsweredState(ticket);
+
+      setTimeout(()=>{ note.classList.remove('show'); }, 3000);
+    }catch(err){
+      alert('네트워크 오류가 발생했어요.');
+    }finally{
+      btn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
