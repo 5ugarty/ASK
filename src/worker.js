@@ -37,7 +37,7 @@ function nowLabel() {
 }
 
 async function loadData(env) {
-  const raw = await env.YCC_KV.get(DATA_KEY);
+  const raw = await env.ask_kv.get(DATA_KEY);
   if (!raw) {
     return {
       counters: { 단체: 0, 익명: 0, 기타: 0, answer: 0 },
@@ -49,7 +49,7 @@ async function loadData(env) {
 }
 
 async function saveData(env, data) {
-  await env.YCC_KV.put(DATA_KEY, JSON.stringify(data));
+  await env.ask_kv.put(DATA_KEY, JSON.stringify(data));
 }
 
 function json(obj, status = 200) {
