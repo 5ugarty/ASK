@@ -57,6 +57,7 @@
   .btn-logout{
     background:none; border:1.5px solid var(--ink); padding:6px 12px;
     font-size:11px; font-family:'JetBrains Mono', monospace; cursor:pointer;
+    color:var(--ink);
   }
   .btn-logout:hover{ background:var(--ink); color:var(--white); }
 
@@ -167,7 +168,10 @@
         <span class="display">YCC ASK</span>
         <span class="tag mono">LEADER</span>
       </div>
-      <button class="btn-logout" id="logout-btn">로그아웃</button>
+      <div style="display:flex; gap:8px;">
+        <a href="/" class="btn-logout" style="text-decoration:none; display:inline-block;">홈으로</a>
+        <button class="btn-logout" id="logout-btn">로그아웃</button>
+      </div>
     </div>
   </header>
 
