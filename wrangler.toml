@@ -1,4 +1,4 @@
-name = "ycc-ask"
+name = "ASK"
 main = "src/worker.js"
 compatibility_date = "2026-08-02"
 
@@ -7,10 +7,10 @@ directory = "./public"
 binding = "ASSETS"
 run_worker_first = ["/api/*"]
 
-# wrangler kv namespace create YCC_KV 실행 후 나오는 id를 아래에 넣어주세요.
+# wrangler kv namespace create ask_kv 실행 후 나오는 id를 아래에 넣어주세요.
 [[kv_namespaces]]
-binding = "YCC_KV"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+binding = "ask_kv"
+id = "717e2896f473415797b7ac2f08f648ce"
 
 [observability]
 enabled = true
