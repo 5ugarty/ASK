@@ -55,3 +55,19 @@ wrangler deploy
 - 데이터는 전부 Cloudflare KV에 저장돼요. 30명 규모 트래픽으로는 무료 티어(하루 쓰기 1,000회) 안에서 여유롭게 운영 가능해요.
 - 리더 비밀번호는 서버(Worker) 쪽에서만 검증하고, 로그인하면 서명된 쿠키로 1년간 로그인 유지돼요.
 - 도메인을 따로 갖고 계시면 `wrangler.toml`의 `route` 설정으로 연결도 가능해요 (필요하면 말씀해주세요).
+
+## (선택) 새 질문/답변 텔레그램 알림 설정
+새 질문이나 답변이 올 때마다 텔레그램으로 알림이 가게 하려면:
+
+1. 텔레그램에서 **BotFather** 검색 → `/newbot` → 봇 이름/아이디(예: `ycc_ask_bot`) 설정 → **API 토큰** 발급받기
+2. 방금 만든 봇과의 채팅에서 아무 메시지나 전송 (예: "안녕")
+3. 브라우저에서 `https://api.telegram.org/bot<토큰>/getUpdates` 열어서 `"chat":{"id": ... }` 안의 숫자(**chat ID**) 확인
+4. Cloudflare 대시보드 → Workers & Pages → `ask` 프로젝트 → **Settings → Variables and Secrets** 에서 추가 (둘 다 Secret 타입으로):
+   - `TELEGRAM_BOT_TOKEN` → 봇 토큰
+   - `TELEGRAM_CHAT_ID` → 확인한 chat ID
+5. 저장 후 재배포되면 자동으로 적용돼요
+
+⚠️ 봇 토큰은 노출되면 재발급(BotFather → `/revoke`)하는 게 안전해요.
+
+이 설정을 안 해도 사이트는 정상 작동해요 — 그냥 알림만 안 갈 뿐이에요.
+

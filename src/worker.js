@@ -48,13 +48,14 @@ function pad3(n) {
 }
 
 function nowLabel() {
-  const fmt = new Intl.DateTimeFormat('ko-KR', {
+  const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Seoul',
-    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true,
   });
   const parts = fmt.formatToParts(new Date());
   const get = (type) => parts.find(p => p.type === type).value;
-  return `${get('month')}.${get('day')} ${get('hour')}:${get('minute')}`;
+  const hour = get('hour').padStart(2, '0');
+  return `${get('month')}.${get('day')} ${hour}:${get('minute')} ${get('dayPeriod')}`;
 }
 
 async function loadData(env) {

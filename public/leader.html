@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>YCC ASK · LEADER</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#0A0A0A; --paper:#F3F3F1; --white:#FFFFFF; --line:#C9C9C7; --sub:#6E6E6C;
@@ -13,7 +14,7 @@
   *{box-sizing:border-box; margin:0; padding:0;}
   html,body{
     background:var(--paper); color:var(--ink);
-    font-family:'Noto Sans KR', sans-serif; -webkit-font-smoothing:antialiased;
+    font-family:'Pretendard', sans-serif; -webkit-font-smoothing:antialiased;
   }
   body{
     background-image: radial-gradient(var(--line) 1px, transparent 1px);
@@ -109,12 +110,12 @@
   .item-head .cat-tag.단체{ background:var(--ink); color:var(--white); border-color:var(--ink); }
   .item-head .time{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--sub); }
 
-  .item-body{ padding:14px; font-size:14px; line-height:1.55; font-weight:500; }
+  .item-body{ padding:14px; font-size:14px; line-height:1.55; font-weight:500; white-space:pre-wrap; word-break:break-word; }
   .item-body .etc-target{ display:block; font-size:11px; color:var(--sub); font-family:'JetBrains Mono', monospace; margin-bottom:6px; }
 
   .item-linked-q{
     margin:0 14px 12px; padding:10px 12px; background:var(--paper); border:1px dashed var(--line);
-    font-size:12px; color:var(--sub);
+    font-size:12px; color:var(--sub); white-space:pre-wrap; word-break:break-word;
   }
   .item-linked-q .lbl{ font-family:'JetBrains Mono', monospace; font-size:9px; display:block; margin-bottom:4px; }
   .item-linked-q .name{
@@ -469,20 +470,24 @@
     });
   }
 
-  // 글자 단위 줄바꿈 (한글 혼용 텍스트에 안전)
+  // 글자 단위 줄바꿈 (한글 혼용 텍스트에 안전) + 사용자가 입력한 엔터(줄바꿈) 그대로 반영
   function wrapLines(ctx, text, maxWidth){
+    const paragraphs = text.split('\n');
     const lines = [];
-    let current = '';
-    for(const ch of text){
-      const test = current + ch;
-      if(ctx.measureText(test).width > maxWidth && current){
-        lines.push(current);
-        current = ch;
-      } else {
-        current = test;
+    paragraphs.forEach(para => {
+      if(para === ''){ lines.push(''); return; }
+      let current = '';
+      for(const ch of para){
+        const test = current + ch;
+        if(ctx.measureText(test).width > maxWidth && current){
+          lines.push(current);
+          current = ch;
+        } else {
+          current = test;
+        }
       }
-    }
-    if(current) lines.push(current);
+      if(current) lines.push(current);
+    });
     return lines;
   }
 
@@ -565,7 +570,7 @@
     }
 
     // 질문 본문
-    ctx.font = '700 46px "Noto Sans KR", sans-serif';
+    ctx.font = '700 46px "Pretendard", sans-serif';
     ctx.fillStyle = C_INK;
     ctx.textAlign = 'center';
     const bodyBottom = IMG_SIZE - m - 90;
@@ -619,7 +624,7 @@
 
     // 원 질문 (인용 박스)
     const qBoxX = m + 40, qBoxY = headY + 40, qBoxW = IMG_SIZE - m*2 - 80;
-    ctx.font = '500 26px "Noto Sans KR", sans-serif';
+    ctx.font = '500 26px "Pretendard", sans-serif';
     const qLines = wrapLines(ctx, a.questionText, qBoxW - 48);
     const qLineHeight = 38;
     const qBoxH = 36 + qLines.length * qLineHeight + 20;
@@ -635,7 +640,7 @@
     ctx.fillStyle = C_SUB;
     ctx.fillText('원 질문', qBoxX + 24, qBoxY + 26);
 
-    ctx.font = '500 26px "Noto Sans KR", sans-serif';
+    ctx.font = '500 26px "Pretendard", sans-serif';
     ctx.fillStyle = C_SUB;
     qLines.forEach((line, i)=>{
       ctx.fillText(line, qBoxX + 24, qBoxY + 60 + i*qLineHeight);
@@ -644,7 +649,7 @@
     // 답변 본문
     const bodyTop = qBoxY + qBoxH + 50;
     const bodyBottom = IMG_SIZE - m - 130;
-    ctx.font = '700 44px "Noto Sans KR", sans-serif';
+    ctx.font = '700 44px "Pretendard", sans-serif';
     ctx.fillStyle = C_INK;
     ctx.textAlign = 'center';
     drawWrappedText(ctx, a.answerText, IMG_SIZE/2, (bodyTop+bodyBottom)/2, IMG_SIZE - m*2 - 100, 60);
