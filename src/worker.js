@@ -17,6 +17,26 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1년 (로그인 유지)
 const ADJECTIVES = ['어리둥절', '달리는', '반짝이는', '느긋한', '용감한', '몰래', '수줍은', '엉뚱한', '단단한', '살금살금', '깜짝', '조용한', '씩씩한', '포근한', '엉거주춤'];
 const ANIMALS = ['범고래', '흰오목눈이', '수달', '펭귄', '고슴도치', '다람쥐', '부엉이', '너구리', '알파카', '해달', '기린', '오소리', '두더지', '앵무새', '고양이'];
 
+/* ---------------- 리더에게 텔레그램 알림 ---------------- */
+async function notifyLeader(env, ctx, subject, text) {
+  // TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 이 설정 안 돼있으면 그냥 건너뜀 (알림 기능은 선택 사항)
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) return;
+
+  const message = `${subject}\n\n${text}`;
+
+  const send = fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: env.TELEGRAM_CHAT_ID,
+      text: message,
+    }),
+  }).catch(err => console.error('텔레그램 알림 실패', err));
+
+  // 알림 발송 때문에 질문/답변 응답이 느려지지 않도록 기다리지 않고 백그라운드로 처리
+  if (ctx && ctx.waitUntil) ctx.waitUntil(send); else await send;
+}
+
 function randomName() {
   const a = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
   const b = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
@@ -28,12 +48,13 @@ function pad3(n) {
 }
 
 function nowLabel() {
-  const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mi = String(d.getMinutes()).padStart(2, '0');
-  return `${mm}.${dd} ${hh}:${mi}`;
+  const fmt = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  const parts = fmt.formatToParts(new Date());
+  const get = (type) => parts.find(p => p.type === type).value;
+  return `${get('month')}.${get('day')} ${get('hour')}:${get('minute')}`;
 }
 
 async function loadData(env) {
@@ -147,6 +168,13 @@ export default {
         });
 
         await saveData(env, data);
+
+        await notifyLeader(
+          env, ctx,
+          `[YCC ASK] 새 질문 도착 · ${code}`,
+          `${code}\n${nowLabel()}\n\n${text}${target ? `\n\nTO. ${target}` : ''}\n\n리더 화면에서 확인하세요.`
+        );
+
         return json({ qid, code });
       }
 
@@ -176,6 +204,13 @@ export default {
         });
 
         await saveData(env, data);
+
+        await notifyLeader(
+          env, ctx,
+          `[YCC ASK] 새 답변 도착 · ${q.code}`,
+          `원 질문: ${q.text}\n\n답변 (${name}):\n${text}\n\n리더 화면 답변함에서 확인하세요.`
+        );
+
         return json({ id, name });
       }
 
