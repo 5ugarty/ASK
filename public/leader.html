@@ -514,6 +514,85 @@
     }, 'image/png');
   }
 
+  function roundRectPath(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+
+  function drawBarcode(ctx, x, y, w, h, count){
+    const gap = w / count;
+    for(let i = 0; i < count; i++){
+      const bw = (i % 3 === 0) ? gap * 0.55 : gap * 0.3;
+      ctx.fillRect(x + i * gap, y, bw, h);
+    }
+  }
+
+  function drawSmileyGlobe(ctx, cx, cy, r){
+    ctx.save();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2;
+    ctx.translate(cx, cy);
+    ctx.rotate(-0.35);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r + 16, (r + 16) * 0.32, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.arc(cx - r*0.35, cy - r*0.15, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r*0.35, cy - r*0.15, 3, 0, Math.PI*2); ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy - r*0.1, r*0.45, 0.15*Math.PI, 0.85*Math.PI);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function drawCursor(ctx, x, y, size){
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(size*0.65, size*0.5);
+    ctx.lineTo(size*0.38, size*0.52);
+    ctx.lineTo(size*0.5, size*0.86);
+    ctx.lineTo(size*0.36, size*0.92);
+    ctx.lineTo(size*0.24, size*0.58);
+    ctx.lineTo(0, size*0.72);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawUpArrow(ctx, x, y, size){
+    ctx.save();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x - size*0.4, y + size*0.35);
+    ctx.lineTo(x, y - size*0.35);
+    ctx.lineTo(x + size*0.4, y + size*0.35);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x, y + size*0.35);
+    ctx.lineTo(x, y + size*1.3);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   async function downloadQuestionImage(qid){
     const q = questions.find(x=>x.qid===qid);
     if(!q) return;
@@ -522,70 +601,111 @@
     const canvas = document.createElement('canvas');
     canvas.width = IMG_SIZE; canvas.height = IMG_SIZE;
     const ctx = canvas.getContext('2d');
-    const m = drawTicketBase(ctx);
+    const m = 60;
 
-    const headY = m + 90;
-    drawDashedLine(ctx, m, headY, IMG_SIZE - m);
-    drawNotches(ctx, m, headY);
+    // 배경 (블랙)
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, IMG_SIZE, IMG_SIZE);
 
-    // 카테고리 뱃지
-    ctx.font = '700 26px "JetBrains Mono", monospace';
-    const tagText = q.category;
-    const tagPad = 16;
-    const tagW = ctx.measureText(tagText).width + tagPad*2;
-    const tagX = m + 40, tagY = m + 34, tagH = 44;
-    if(q.category === '단체'){
-      ctx.fillStyle = C_INK;
-      ctx.fillRect(tagX, tagY, tagW, tagH);
-      ctx.fillStyle = C_WHITE;
-    } else {
-      ctx.strokeStyle = C_INK; ctx.lineWidth = 2;
-      ctx.strokeRect(tagX, tagY, tagW, tagH);
-      ctx.fillStyle = C_INK;
-    }
-    ctx.textBaseline = 'middle';
-    ctx.fillText(tagText, tagX + tagPad, tagY + tagH/2 + 2);
+    // 외곽 라운드 프레임
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 5;
+    roundRectPath(ctx, m, m, IMG_SIZE - m*2, IMG_SIZE - m*2, 40);
+    ctx.stroke();
 
-    // 코드 (번호)
-    ctx.font = '700 34px "JetBrains Mono", monospace';
-    ctx.fillStyle = C_INK;
-    ctx.fillText(q.code, tagX + tagW + 24, tagY + tagH/2 + 2);
+    // 헤더: 바코드 + 스마일 글로브
+    ctx.fillStyle = '#FFFFFF';
+    drawBarcode(ctx, m + 40, m + 36, 90, 40, 11);
+    drawSmileyGlobe(ctx, m + 40 + 90 + 46, m + 56, 26);
 
-    // 시각
-    ctx.font = '500 22px "JetBrains Mono", monospace';
-    ctx.fillStyle = C_SUB;
+    // 헤더: 브랜드 워드마크 + 커서
+    ctx.font = '900 68px "Pretendard", sans-serif';
+    ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'right';
-    ctx.fillText(q.time, IMG_SIZE - m - 40, tagY + tagH/2 + 2);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('ASK.', IMG_SIZE - m - 40, m + 78);
+    ctx.textAlign = 'left';
+    drawCursor(ctx, IMG_SIZE - m - 56, m + 60, 40);
+
+    // 헤더 아래 이중 룰선
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(m + 30, m + 114); ctx.lineTo(IMG_SIZE - m - 30, m + 114); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(m + 30, m + 122); ctx.lineTo(IMG_SIZE - m - 30, m + 122); ctx.stroke();
+
+    // 콘텐츠 박스
+    const boxX = m + 40, boxY = m + 152;
+    const boxW = IMG_SIZE - (m + 40) * 2;
+    const boxBottom = IMG_SIZE - m - 190;
+    const boxH = boxBottom - boxY;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 4;
+    roundRectPath(ctx, boxX, boxY, boxW, boxH, 24);
+    ctx.stroke();
+
+    // 박스 모서리 셀렉션 핸들
+    ctx.fillStyle = '#FFFFFF';
+    [[boxX, boxY], [boxX+boxW, boxY], [boxX, boxY+boxH], [boxX+boxW, boxY+boxH]].forEach(([hx,hy])=>{
+      ctx.fillRect(hx - 7, hy - 7, 14, 14);
+    });
+
+    // 박스 안: 카테고리+번호, 시각
+    ctx.font = '700 24px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(q.code, boxX + 28, boxY + 40);
+
+    ctx.font = '500 20px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#B0B0B0';
+    ctx.textAlign = 'right';
+    ctx.fillText(q.time, boxX + boxW - 28, boxY + 40);
     ctx.textAlign = 'left';
 
-    // 기타 대상 표시
-    let bodyTop = headY + 70;
+    let bodyTop = boxY + 90;
     if(q.category === '기타' && q.target){
-      ctx.font = '600 24px "JetBrains Mono", monospace';
-      ctx.fillStyle = C_SUB;
+      ctx.font = '600 22px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#B0B0B0';
       ctx.textAlign = 'center';
-      ctx.fillText(`TO. ${q.target}`, IMG_SIZE/2, bodyTop);
+      ctx.fillText(`TO. ${q.target}`, boxX + boxW/2, bodyTop);
       ctx.textAlign = 'left';
-      bodyTop += 50;
+      bodyTop += 44;
     }
 
     // 질문 본문
-    ctx.font = '700 46px "Pretendard", sans-serif';
-    ctx.fillStyle = C_INK;
+    ctx.font = '800 44px "Pretendard", sans-serif';
+    ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
-    const bodyBottom = IMG_SIZE - m - 90;
-    const bodyCenterY = (bodyTop + bodyBottom) / 2;
-    drawWrappedText(ctx, q.text, IMG_SIZE/2, bodyCenterY, IMG_SIZE - m*2 - 100, 62);
+    const bodyBottom = boxY + boxH - 30;
+    drawWrappedText(ctx, q.text, boxX + boxW/2, (bodyTop + bodyBottom)/2, boxW - 80, 58);
     ctx.textAlign = 'left';
 
-    // 하단 브랜딩
-    ctx.font = '400 20px "Bebas Neue", sans-serif';
-    ctx.fillStyle = C_SUB;
-    ctx.textAlign = 'center';
-    ctx.letterSpacing = '2px';
-    ctx.fillText('YCC ASK', IMG_SIZE/2, IMG_SIZE - m - 34);
+    // 하단: 업 애로우
+    drawUpArrow(ctx, m + 90, boxBottom + 34, 26);
+    drawUpArrow(ctx, IMG_SIZE - m - 90, boxBottom + 34, 26);
+
+    // 하단: 바코드 스트립 + 아이콘 버튼 2개
+    ctx.fillStyle = '#FFFFFF';
+    drawBarcode(ctx, m + 40, IMG_SIZE - m - 92, IMG_SIZE - m*2 - 200, 28, 26);
+
+    ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2;
+    ctx.strokeRect(IMG_SIZE - m - 138, IMG_SIZE - m - 92, 30, 28);
+    ctx.beginPath(); ctx.arc(IMG_SIZE - m - 123, IMG_SIZE - m - 78, 4, 0, Math.PI*2); ctx.fill();
+    ctx.strokeRect(IMG_SIZE - m - 100, IMG_SIZE - m - 92, 30, 28);
+    ctx.beginPath();
+    ctx.moveTo(IMG_SIZE - m - 85, IMG_SIZE - m - 88); ctx.lineTo(IMG_SIZE - m - 85, IMG_SIZE - m - 68);
+    ctx.moveTo(IMG_SIZE - m - 95, IMG_SIZE - m - 78); ctx.lineTo(IMG_SIZE - m - 75, IMG_SIZE - m - 78);
+    ctx.stroke();
+
+    // 하단 우측: 원형 씰
+    const sealCx = IMG_SIZE - m - 44, sealCy = IMG_SIZE - m - 44;
+    ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(sealCx, sealCy, 34, 0, Math.PI*2); ctx.stroke();
+    ctx.font = '700 13px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('YCC', sealCx, sealCy - 8);
+    ctx.fillText('ASK', sealCx, sealCy + 8);
     ctx.textAlign = 'left';
-    ctx.letterSpacing = '0px';
 
     triggerDownload(canvas, `${q.qid}.png`);
   }
@@ -598,75 +718,131 @@
     const canvas = document.createElement('canvas');
     canvas.width = IMG_SIZE; canvas.height = IMG_SIZE;
     const ctx = canvas.getContext('2d');
-    const m = drawTicketBase(ctx);
+    const m = 60;
 
-    const headY = m + 90;
-    drawDashedLine(ctx, m, headY, IMG_SIZE - m);
-    drawNotches(ctx, m, headY);
+    // 배경 (블랙)
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, IMG_SIZE, IMG_SIZE);
 
-    // 뱃지
-    ctx.font = '700 26px "JetBrains Mono", monospace';
-    const tagText = '익명 답변';
-    const tagPad = 16;
-    const tagW = ctx.measureText(tagText).width + tagPad*2;
-    const tagX = m + 40, tagY = m + 34, tagH = 44;
-    ctx.strokeStyle = C_INK; ctx.lineWidth = 2;
-    ctx.strokeRect(tagX, tagY, tagW, tagH);
-    ctx.fillStyle = C_INK;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(tagText, tagX + tagPad, tagY + tagH/2 + 2);
+    // 외곽 라운드 프레임
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 5;
+    roundRectPath(ctx, m, m, IMG_SIZE - m*2, IMG_SIZE - m*2, 40);
+    ctx.stroke();
 
-    ctx.font = '500 22px "JetBrains Mono", monospace';
-    ctx.fillStyle = C_SUB;
+    // 헤더: 바코드 + 스마일 글로브
+    ctx.fillStyle = '#FFFFFF';
+    drawBarcode(ctx, m + 40, m + 36, 90, 40, 11);
+    drawSmileyGlobe(ctx, m + 40 + 90 + 46, m + 56, 26);
+
+    // 헤더: 브랜드 워드마크 + 커서
+    ctx.font = '900 68px "Pretendard", sans-serif';
+    ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'right';
-    ctx.fillText(a.time, IMG_SIZE - m - 40, tagY + tagH/2 + 2);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('ASK.', IMG_SIZE - m - 40, m + 78);
+    ctx.textAlign = 'left';
+    drawCursor(ctx, IMG_SIZE - m - 56, m + 60, 40);
+
+    // 헤더 아래 이중 룰선
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(m + 30, m + 114); ctx.lineTo(IMG_SIZE - m - 30, m + 114); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(m + 30, m + 122); ctx.lineTo(IMG_SIZE - m - 30, m + 122); ctx.stroke();
+
+    // 콘텐츠 박스
+    const boxX = m + 40, boxY = m + 152;
+    const boxW = IMG_SIZE - (m + 40) * 2;
+    const boxBottom = IMG_SIZE - m - 190;
+    const boxH = boxBottom - boxY;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 4;
+    roundRectPath(ctx, boxX, boxY, boxW, boxH, 24);
+    ctx.stroke();
+
+    // 박스 모서리 셀렉션 핸들
+    ctx.fillStyle = '#FFFFFF';
+    [[boxX, boxY], [boxX+boxW, boxY], [boxX, boxY+boxH], [boxX+boxW, boxY+boxH]].forEach(([hx,hy])=>{
+      ctx.fillRect(hx - 7, hy - 7, 14, 14);
+    });
+
+    // 박스 안: 뱃지 + 시각
+    ctx.font = '700 24px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('익명 답변', boxX + 28, boxY + 40);
+
+    ctx.font = '500 20px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#B0B0B0';
+    ctx.textAlign = 'right';
+    ctx.fillText(a.time, boxX + boxW - 28, boxY + 40);
     ctx.textAlign = 'left';
 
-    // 원 질문 (인용 박스)
-    const qBoxX = m + 40, qBoxY = headY + 40, qBoxW = IMG_SIZE - m*2 - 80;
-    ctx.font = '500 26px "Pretendard", sans-serif';
-    const qLines = wrapLines(ctx, a.questionText, qBoxW - 48);
-    const qLineHeight = 38;
-    const qBoxH = 36 + qLines.length * qLineHeight + 20;
+    // 원 질문 (점선 인용 박스, 박스 안에 중첩)
+    const qBoxX = boxX + 28, qBoxY = boxY + 74, qBoxW = boxW - 56;
+    ctx.font = '500 22px "Pretendard", sans-serif';
+    const qLines = wrapLines(ctx, a.questionText, qBoxW - 44);
+    const qLineHeight = 32;
+    const qBoxH = 32 + qLines.length * qLineHeight + 14;
 
-    ctx.fillStyle = C_PAPER;
-    ctx.fillRect(qBoxX, qBoxY, qBoxW, qBoxH);
     ctx.save();
-    ctx.strokeStyle = C_LINE; ctx.lineWidth = 2; ctx.setLineDash([8,6]);
-    ctx.strokeRect(qBoxX, qBoxY, qBoxW, qBoxH);
+    ctx.strokeStyle = '#6E6E6E'; ctx.lineWidth = 2; ctx.setLineDash([7,6]);
+    roundRectPath(ctx, qBoxX, qBoxY, qBoxW, qBoxH, 10);
+    ctx.stroke();
     ctx.restore();
 
-    ctx.font = '600 18px "JetBrains Mono", monospace';
-    ctx.fillStyle = C_SUB;
-    ctx.fillText('원 질문', qBoxX + 24, qBoxY + 26);
+    ctx.font = '600 15px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#8A8A8A';
+    ctx.fillText('원 질문', qBoxX + 20, qBoxY + 22);
 
-    ctx.font = '500 26px "Pretendard", sans-serif';
-    ctx.fillStyle = C_SUB;
+    ctx.font = '500 22px "Pretendard", sans-serif';
+    ctx.fillStyle = '#B0B0B0';
     qLines.forEach((line, i)=>{
-      ctx.fillText(line, qBoxX + 24, qBoxY + 60 + i*qLineHeight);
+      ctx.fillText(line, qBoxX + 20, qBoxY + 50 + i*qLineHeight);
     });
 
     // 답변 본문
-    const bodyTop = qBoxY + qBoxH + 50;
-    const bodyBottom = IMG_SIZE - m - 130;
-    ctx.font = '700 44px "Pretendard", sans-serif';
-    ctx.fillStyle = C_INK;
+    const answerTop = qBoxY + qBoxH + 44;
+    const answerBottom = boxY + boxH - 60;
+    ctx.font = '800 42px "Pretendard", sans-serif';
+    ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
-    drawWrappedText(ctx, a.answerText, IMG_SIZE/2, (bodyTop+bodyBottom)/2, IMG_SIZE - m*2 - 100, 60);
+    drawWrappedText(ctx, a.answerText, boxX + boxW/2, (answerTop+answerBottom)/2, boxW - 80, 56);
     ctx.textAlign = 'left';
 
     // 서명 (랜덤 이름)
-    ctx.font = '600 26px "JetBrains Mono", monospace';
-    ctx.fillStyle = C_SUB;
+    ctx.font = '600 22px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#B0B0B0';
     ctx.textAlign = 'right';
-    ctx.fillText(`— ${a.name}`, IMG_SIZE - m - 40, IMG_SIZE - m - 90);
+    ctx.fillText(`— ${a.name}`, boxX + boxW - 28, boxY + boxH - 24);
     ctx.textAlign = 'left';
 
-    // 하단 브랜딩
-    ctx.font = '400 20px "Bebas Neue", sans-serif';
-    ctx.fillStyle = C_SUB;
-    ctx.textAlign = 'center';
-    ctx.fillText('YCC ASK', IMG_SIZE/2, IMG_SIZE - m - 34);
+    // 하단: 업 애로우
+    drawUpArrow(ctx, m + 90, boxBottom + 34, 26);
+    drawUpArrow(ctx, IMG_SIZE - m - 90, boxBottom + 34, 26);
+
+    // 하단: 바코드 스트립 + 아이콘 버튼 2개
+    ctx.fillStyle = '#FFFFFF';
+    drawBarcode(ctx, m + 40, IMG_SIZE - m - 92, IMG_SIZE - m*2 - 200, 28, 26);
+
+    ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2;
+    ctx.strokeRect(IMG_SIZE - m - 138, IMG_SIZE - m - 92, 30, 28);
+    ctx.beginPath(); ctx.arc(IMG_SIZE - m - 123, IMG_SIZE - m - 78, 4, 0, Math.PI*2); ctx.fill();
+    ctx.strokeRect(IMG_SIZE - m - 100, IMG_SIZE - m - 92, 30, 28);
+    ctx.beginPath();
+    ctx.moveTo(IMG_SIZE - m - 85, IMG_SIZE - m - 88); ctx.lineTo(IMG_SIZE - m - 85, IMG_SIZE - m - 68);
+    ctx.moveTo(IMG_SIZE - m - 95, IMG_SIZE - m - 78); ctx.lineTo(IMG_SIZE - m - 75, IMG_SIZE - m - 78);
+    ctx.stroke();
+
+    // 하단 우측: 원형 씰
+    const sealCx = IMG_SIZE - m - 44, sealCy = IMG_SIZE - m - 44;
+    ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(sealCx, sealCy, 34, 0, Math.PI*2); ctx.stroke();
+    ctx.font = '700 13px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('YCC', sealCx, sealCy - 8);
+    ctx.fillText('ASK', sealCx, sealCy + 8);
     ctx.textAlign = 'left';
 
     triggerDownload(canvas, `answer-${a.id}.png`);
