@@ -622,9 +622,9 @@
     // 이 굵기들은 화면 어디에도 안 쓰여서 그냥 두면 브라우저가 안 받아놓고 기본폰트로 대체해버림.
     // 그래서 명시적으로 강제 로드시킴.
     await Promise.all([
-      document.fonts.load('400 250px "Abril Fatface"'),
-      document.fonts.load('300 16px "Pretendard"'),
-      document.fonts.load('400 20px "Pretendard"'),
+      document.fonts.load('400 220px "Abril Fatface"'),
+      document.fonts.load('300 14px "Pretendard"'),
+      document.fonts.load('300 19px "Pretendard"'),
     ]);
     await document.fonts.ready;
 
@@ -642,7 +642,7 @@
     ctx.save();
     ctx.translate(275, 265);
     ctx.rotate(-6 * Math.PI / 180);
-    ctx.font = '400 265px "Abril Fatface", serif';
+    ctx.font = '400 220px "Abril Fatface", serif';
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -656,27 +656,27 @@
     ctx.drawImage(sheetImg, 0, 0, IMG_SIZE, IMG_SIZE);
 
     // 카테고리+번호 ("단체 #003" 스타일), 헤더 우측
-    ctx.font = '300 16px "Pretendard", sans-serif';
+    ctx.font = '300 14px "Pretendard", sans-serif';
     ctx.fillStyle = '#111111';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
     try{ ctx.letterSpacing = '-0.3px'; }catch(e){}
-    ctx.fillText(q.code.replace(' ', ' #'), 866, 401);
+    ctx.fillText(q.code.replace(' ', ' #'), 866, 409);
     try{ ctx.letterSpacing = '0px'; }catch(e){}
     ctx.textAlign = 'left';
 
     // 질문 본문 (검은 박스 안, 흰색 중앙 정렬)
     const boxX = 437, boxY = 412, boxX2 = 871, boxY2 = 539;
-    const boxCx = (boxX + boxX2) / 2, boxCy = (boxY + boxY2) / 2;
+    const boxCx = (boxX + boxX2) / 2, boxCy = (boxY + boxY2) / 2 - 18;
     let bodyText = q.text;
     if(q.category === '기타' && q.target){
       bodyText = `TO. ${q.target}\n${q.text}`;
     }
-    ctx.font = '400 20px "Pretendard", sans-serif';
+    ctx.font = '300 19px "Pretendard", sans-serif';
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
     try{ ctx.letterSpacing = '-0.3px'; }catch(e){}
-    drawWrappedText(ctx, bodyText, boxCx, boxCy, (boxX2 - boxX) - 60, 28);
+    drawWrappedText(ctx, bodyText, boxCx, boxCy, (boxX2 - boxX) - 60, 25);
     try{ ctx.letterSpacing = '0px'; }catch(e){}
     ctx.textAlign = 'left';
 
