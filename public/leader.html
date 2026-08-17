@@ -657,7 +657,7 @@
 
     // 카테고리+번호 ("단체 #003" 스타일), 헤더 우측
     ctx.font = '300 12px "Pretendard", sans-serif';
-    ctx.fillStyle = '#111111';
+    ctx.fillStyle = '#000000';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
     try{ ctx.letterSpacing = '-0.3px'; }catch(e){}
@@ -667,7 +667,7 @@
 
     // 질문 본문 (검은 박스 안, 흰색 중앙 정렬)
     const boxX = 437, boxY = 412, boxX2 = 871, boxY2 = 539;
-    const boxCx = (boxX + boxX2) / 2, boxCy = (boxY + boxY2) / 2;
+    const boxCx = (boxX + boxX2) / 2, boxCy = (boxY + boxY2) / 2 - 7;
     let bodyText = q.text;
     if(q.category === '기타' && q.target){
       bodyText = `TO. ${q.target}\n${q.text}`;
