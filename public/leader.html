@@ -617,7 +617,17 @@
   async function downloadQuestionImage(qid){
     const q = questions.find(x=>x.qid===qid);
     if(!q) return;
+
+    // 캔버스는 실제로 "사용된 적 있는" 폰트/굵기만 로드해두는데,
+    // 이 굵기들은 화면 어디에도 안 쓰여서 그냥 두면 브라우저가 안 받아놓고 기본폰트로 대체해버림.
+    // 그래서 명시적으로 강제 로드시킴.
+    await Promise.all([
+      document.fonts.load('400 250px "Abril Fatface"'),
+      document.fonts.load('300 16px "Pretendard"'),
+      document.fonts.load('400 20px "Pretendard"'),
+    ]);
     await document.fonts.ready;
+
     const [bgImg, sheetImg] = await loadQuestionTemplate();
 
     const canvas = document.createElement('canvas');
@@ -632,11 +642,13 @@
     ctx.save();
     ctx.translate(275, 265);
     ctx.rotate(-6 * Math.PI / 180);
-    ctx.font = '400 250px "Abril Fatface", serif';
+    ctx.font = '400 265px "Abril Fatface", serif';
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    try{ ctx.letterSpacing = '-6px'; }catch(e){}
     ctx.fillText(numOnly, 0, 0);
+    try{ ctx.letterSpacing = '0px'; }catch(e){}
     ctx.restore();
     ctx.textAlign = 'left';
 
@@ -648,7 +660,9 @@
     ctx.fillStyle = '#111111';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
+    try{ ctx.letterSpacing = '-0.3px'; }catch(e){}
     ctx.fillText(q.code.replace(' ', ' #'), 866, 401);
+    try{ ctx.letterSpacing = '0px'; }catch(e){}
     ctx.textAlign = 'left';
 
     // 질문 본문 (검은 박스 안, 흰색 중앙 정렬)
@@ -661,7 +675,9 @@
     ctx.font = '400 20px "Pretendard", sans-serif';
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
+    try{ ctx.letterSpacing = '-0.3px'; }catch(e){}
     drawWrappedText(ctx, bodyText, boxCx, boxCy, (boxX2 - boxX) - 60, 28);
+    try{ ctx.letterSpacing = '0px'; }catch(e){}
     ctx.textAlign = 'left';
 
     triggerDownload(canvas, `${q.qid}.png`);
