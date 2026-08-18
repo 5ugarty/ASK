@@ -141,7 +141,13 @@ export default {
           .filter(q => q.category === '익명' && q.public)
           .map(q => ({ qid: q.qid, uid: q.uid || q.qid, code: q.code, text: q.text, time: q.time }))
           .reverse(); // 최신순
-        return json({ total: data.questions.length, counters: data.counters, publicQuestions });
+
+        const categoryCounts = { 전체: 0, 그룹: 0, 익명: 0 };
+        data.questions.forEach(q => {
+          if (categoryCounts[q.category] !== undefined) categoryCounts[q.category] += 1;
+        });
+
+        return json({ total: data.questions.length, counters: data.counters, categoryCounts, publicQuestions });
       }
 
       // ---- 공개: 질문 전송 ----

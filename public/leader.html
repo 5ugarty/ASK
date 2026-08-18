@@ -748,7 +748,7 @@
     const boxCx = (boxX + boxX2) / 2, boxCy = (boxY + boxY2) / 2 - 8;
     let bodyText = q.text;
     if(q.category === '그룹' && q.target){
-      bodyText = `TO. ${q.target}\n${q.text}`;
+      bodyText = `${q.target} >>> ${q.text}`;
     }
     ctx.font = '200 19px "Pretendard", sans-serif';
     ctx.fillStyle = '#FFFFFF';
