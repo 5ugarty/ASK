@@ -202,6 +202,7 @@ export default {
           name,
           answerText: text,
           time: nowLabel(),
+          read: false,
         });
 
         await saveData(env, data);
@@ -292,6 +293,18 @@ export default {
         data.questions = data.questions.filter(x => x.qid !== qid);
         // 연결된 답변도 함께 정리
         data.answers = data.answers.filter(x => x.qid !== qid);
+        await saveData(env, data);
+        return json({ ok: true });
+      }
+
+      // ---- 리더: 답변 확인 상태 토글 ----
+      if (path.match(/^\/api\/leader\/answers\/[^/]+\/read$/) && method === 'POST') {
+        const id = Number(path.split('/')[4]);
+        const body = await request.json();
+        const data = await loadData(env);
+        const a = data.answers.find(x => x.id === id);
+        if (!a) return json({ error: '답변을 찾을 수 없어요.' }, 404);
+        a.read = !!body.read;
         await saveData(env, data);
         return json({ ok: true });
       }

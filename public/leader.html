@@ -123,6 +123,26 @@
     display:inline-block; margin-top:6px; border-top:1px dashed var(--line); padding-top:6px; width:100%;
   }
 
+  .answer-thread{ border-top:1px solid var(--line); }
+  .answer-row{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:10px 14px; border-bottom:1px dashed var(--line);
+  }
+  .answer-row:last-child{ border-bottom:none; }
+  .answer-check{ display:flex; align-items:flex-start; gap:8px; cursor:pointer; min-width:0; }
+  .answer-check input[type=checkbox]{ width:16px; height:16px; margin-top:2px; flex:none; accent-color:var(--ink); }
+  .answer-line{ font-size:13px; line-height:1.5; word-break:break-word; }
+  .answer-row.is-read .answer-line{ color:var(--sub); text-decoration:line-through; text-decoration-color:var(--line); }
+  .answer-row-meta{ display:flex; align-items:center; gap:6px; flex:none; }
+  .answer-row-meta .time{ font-size:9px; color:var(--sub); white-space:nowrap; }
+  .mini-btn{
+    font-family:'JetBrains Mono', monospace; font-size:9px; font-weight:700;
+    padding:4px 7px; border:1px solid var(--ink); background:var(--white); color:var(--ink); cursor:pointer;
+  }
+  .mini-btn:hover{ background:var(--ink); color:var(--white); }
+  .mini-btn.danger{ border-color:var(--line); color:var(--sub); }
+  .mini-btn.danger:hover{ background:var(--sub); color:var(--white); }
+
   .item-actions{ display:flex; flex-wrap:wrap; gap:8px; padding:12px 14px 14px; border-top:1px solid var(--line); }
   .act-btn{
     font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:700; padding:7px 12px;
@@ -192,6 +212,11 @@
         <div class="item-list" id="unread-list"><div class="loading-state">불러오는 중…</div></div>
       </div>
       <div class="panel" id="sub-read">
+        <div class="sub-tabs" id="read-cat-tabs">
+          <div class="sub-tab active" data-cat="단체">단체<span class="mono" id="read-cat-단체"></span></div>
+          <div class="sub-tab" data-cat="익명">익명<span class="mono" id="read-cat-익명"></span></div>
+          <div class="sub-tab" data-cat="기타">기타<span class="mono" id="read-cat-기타"></span></div>
+        </div>
         <div class="item-list" id="read-list"></div>
       </div>
     </div>
@@ -270,12 +295,22 @@
       document.getElementById('panel-answers').classList.toggle('show', tab.dataset.tab==='answers');
     });
   });
-  document.querySelectorAll('.sub-tab').forEach(tab=>{
+  document.querySelectorAll('#panel-inbox > .sub-tabs > .sub-tab').forEach(tab=>{
     tab.addEventListener('click', ()=>{
-      document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('#panel-inbox > .sub-tabs > .sub-tab').forEach(t=>t.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('sub-unread').classList.toggle('show', tab.dataset.sub==='unread');
       document.getElementById('sub-read').classList.toggle('show', tab.dataset.sub==='read');
+    });
+  });
+
+  let readCategoryFilter = '단체';
+  document.querySelectorAll('#read-cat-tabs .sub-tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('#read-cat-tabs .sub-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      readCategoryFilter = tab.dataset.cat;
+      render();
     });
   });
 
@@ -347,45 +382,70 @@
       </div>`;
   }
 
-  function answerCardHTML(a){
-    return `
+  function renderAnswerGroups(){
+    if(!answers.length) return `<div class="empty-state">아직 답변이 없어요</div>`;
+
+    // qid별로 답변 그룹핑 (최초 등장 순서 유지)
+    const groups = [];
+    const groupMap = {};
+    answers.forEach(a=>{
+      if(!groupMap[a.qid]){
+        const q = questions.find(x=>x.qid===a.qid);
+        const group = { qid:a.qid, code: q ? q.code : a.qid, questionText: a.questionText, items: [] };
+        groupMap[a.qid] = group;
+        groups.push(group);
+      }
+      groupMap[a.qid].items.push(a);
+    });
+
+    return groups.map(g => `
       <div class="item-card">
         <span class="notch left"></span>
         <span class="notch right"></span>
         <div class="item-head">
-          <div class="code-group"><span class="cat-tag">익명 답변</span></div>
-          <span class="time mono">${a.time}</span>
+          <div class="code-group"><span class="cat-tag">익명</span><span class="code mono">${escapeHTML(g.code)}</span></div>
         </div>
         <div class="item-linked-q">
           <span class="lbl mono">원 질문</span>
-          ${escapeHTML(a.questionText)}
+          ${escapeHTML(g.questionText)}
         </div>
-        <div class="item-body">
-          ${escapeHTML(a.answerText)}
-          <span class="name mono" style="display:block; margin-top:10px; color:var(--sub); font-size:11px;">— ${a.name}</span>
+        <div class="answer-thread">
+          ${g.items.map(a => `
+            <div class="answer-row ${a.read ? 'is-read' : ''}">
+              <label class="answer-check">
+                <input type="checkbox" ${a.read ? 'checked' : ''} onchange="toggleAnswerRead(${a.id}, this.checked)">
+                <span class="answer-line"><b>${escapeHTML(a.name)}</b>: ${escapeHTML(a.answerText)}</span>
+              </label>
+              <div class="answer-row-meta">
+                <span class="time mono">${a.time}</span>
+                <button class="mini-btn" onclick="downloadAnswerImage(${a.id})">이미지</button>
+                <button class="mini-btn danger" onclick="deleteAnswer(${a.id})">삭제</button>
+              </div>
+            </div>
+          `).join('')}
         </div>
-        <div class="item-actions">
-          <button class="act-btn ghost" onclick="downloadAnswerImage(${a.id})">이미지 저장</button>
-          <button class="act-btn danger" onclick="deleteAnswer(${a.id})">삭제</button>
-        </div>
-      </div>`;
+      </div>`).join('');
   }
 
   function render(){
     const unread = questions.filter(q=>q.status==='unread');
     const read = questions.filter(q=>q.status==='read');
+    const readFiltered = read.filter(q=>q.category===readCategoryFilter);
 
     document.getElementById('unread-list').innerHTML = unread.length
       ? unread.map(questionCardHTML).join('')
       : `<div class="empty-state">미확인 질문이 없어요</div>`;
 
-    document.getElementById('read-list').innerHTML = read.length
-      ? read.map(questionCardHTML).join('')
-      : `<div class="empty-state">확인한 질문이 없어요</div>`;
+    document.getElementById('read-list').innerHTML = readFiltered.length
+      ? readFiltered.map(questionCardHTML).join('')
+      : `<div class="empty-state">확인한 ${readCategoryFilter} 질문이 없어요</div>`;
 
-    document.getElementById('answers-list').innerHTML = answers.length
-      ? answers.map(answerCardHTML).join('')
-      : `<div class="empty-state">아직 답변이 없어요</div>`;
+    ['단체','익명','기타'].forEach(cat=>{
+      const el = document.getElementById('read-cat-' + cat);
+      if(el) el.textContent = ' (' + read.filter(q=>q.category===cat).length + ')';
+    });
+
+    document.getElementById('answers-list').innerHTML = renderAnswerGroups();
 
     document.getElementById('inbox-count').textContent = `(${questions.length})`;
     document.getElementById('answers-count').textContent = `(${answers.length})`;
@@ -417,6 +477,24 @@
     if(!confirm('이 답변을 삭제할까요?')) return;
     await fetch(`/api/leader/answers/${id}`, { method: 'DELETE' });
     loadData();
+  }
+
+  async function toggleAnswerRead(id, checked){
+    // 로컬 상태 먼저 업데이트해서 체크박스가 바로 반응하게, 실패하면 되돌림
+    const a = answers.find(x=>x.id===id);
+    const prev = a ? a.read : undefined;
+    if(a) a.read = checked;
+    render();
+    try{
+      const res = await fetch(`/api/leader/answers/${id}/read`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ read: checked }),
+      });
+      if(!res.ok) throw new Error('실패');
+    }catch(e){
+      if(a) a.read = prev;
+      render();
+    }
   }
 
   /* =========================================================
@@ -624,7 +702,7 @@
     await Promise.all([
       document.fonts.load('400 200px "Abril Fatface"'),
       document.fonts.load('300 12px "Pretendard"'),
-      document.fonts.load('100 19px "Pretendard"'),
+      document.fonts.load('200 19px "Pretendard"'),
     ]);
     await document.fonts.ready;
 
@@ -672,7 +750,7 @@
     if(q.category === '기타' && q.target){
       bodyText = `TO. ${q.target}\n${q.text}`;
     }
-    ctx.font = '100 19px "Pretendard", sans-serif';
+    ctx.font = '200 19px "Pretendard", sans-serif';
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
     try{ ctx.letterSpacing = '-0.3px'; }catch(e){}
