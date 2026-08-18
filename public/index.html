@@ -336,7 +336,7 @@
       return;
     }
     feed.innerHTML = list.map(q => `
-      <div class="q-ticket" data-qid="${q.qid}">
+      <div class="q-ticket" data-qid="${q.qid}" data-uid="${q.uid}">
         <span class="notch left"></span>
         <span class="notch right"></span>
         <div class="stub">
@@ -452,20 +452,20 @@
   }
 
   /* ---------------- 내가 답변한 질문 로컬 표시 (완전 익명, 서버 전송 없음) ---------------- */
-  const ANSWERED_KEY = 'ycc_ask_answered_qids';
+  const ANSWERED_KEY = 'ycc_ask_answered_uids';
   function getAnsweredIds(){
     try{ return JSON.parse(localStorage.getItem(ANSWERED_KEY) || '[]'); }catch(e){ return []; }
   }
-  function markAnsweredLocally(qid){
+  function markAnsweredLocally(uid){
     const ids = getAnsweredIds();
-    if(!ids.includes(qid)){
-      ids.push(qid);
+    if(!ids.includes(uid)){
+      ids.push(uid);
       try{ localStorage.setItem(ANSWERED_KEY, JSON.stringify(ids)); }catch(e){}
     }
   }
   function applyAnsweredState(ticket){
-    const qid = ticket.dataset.qid;
-    const answered = getAnsweredIds().includes(qid);
+    const uid = ticket.dataset.uid;
+    const answered = getAnsweredIds().includes(uid);
     ticket.classList.toggle('answered', answered);
     ticket.querySelector('.answered-flag').classList.toggle('show', answered);
     const btn = ticket.querySelector('.btn-answer');
@@ -500,7 +500,7 @@
       ticket.querySelector('.answer-box').classList.remove('show');
       textarea.value = '';
 
-      markAnsweredLocally(ticket.dataset.qid);
+      markAnsweredLocally(ticket.dataset.uid);
       applyAnsweredState(ticket);
 
       setTimeout(()=>{ note.classList.remove('show'); }, 3000);

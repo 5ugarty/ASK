@@ -139,7 +139,7 @@ export default {
         const data = await loadData(env);
         const publicQuestions = data.questions
           .filter(q => q.category === '익명' && q.public)
-          .map(q => ({ qid: q.qid, code: q.code, text: q.text, time: q.time }))
+          .map(q => ({ qid: q.qid, uid: q.uid || q.qid, code: q.code, text: q.text, time: q.time }))
           .reverse(); // 최신순
         return json({ total: data.questions.length, counters: data.counters, publicQuestions });
       }
@@ -162,7 +162,7 @@ export default {
         const code = `${category} ${pad3(num)}`;
 
         data.questions.push({
-          qid, category, code, text, target,
+          qid, uid: crypto.randomUUID(), category, code, text, target,
           time: nowLabel(),
           status: 'unread',
           public: false,
