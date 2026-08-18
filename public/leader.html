@@ -676,7 +676,12 @@
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
     try{ ctx.letterSpacing = '-0.3px'; }catch(e){}
+    ctx.save();
+    ctx.translate(boxCx, 0);
+    ctx.scale(0.92, 1);
+    ctx.translate(-boxCx, 0);
     drawWrappedText(ctx, bodyText, boxCx, boxCy, (boxX2 - boxX) - 60, 25);
+    ctx.restore();
     try{ ctx.letterSpacing = '0px'; }catch(e){}
     ctx.textAlign = 'left';
 
