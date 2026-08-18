@@ -319,9 +319,10 @@
       const res = await fetch('/api/public/data');
       const data = await res.json();
       document.getElementById('total-count').textContent = pad(data.total);
-      document.getElementById('preview-단체').textContent = '단체 ' + pad((data.counters?.단체 || 0) + 1);
-      document.getElementById('preview-익명').textContent = '익명 ' + pad((data.counters?.익명 || 0) + 1);
-      document.getElementById('preview-기타').textContent = '기타 ' + pad((data.counters?.기타 || 0) + 1);
+      const nextNum = pad((data.counters?.question || 0) + 1);
+      document.getElementById('preview-단체').textContent = '단체 ' + nextNum;
+      document.getElementById('preview-익명').textContent = '익명 ' + nextNum;
+      document.getElementById('preview-기타').textContent = '기타 ' + nextNum;
       renderFeed(data.publicQuestions || []);
     }catch(e){
       console.error('데이터 로드 실패', e);

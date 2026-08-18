@@ -62,7 +62,7 @@ async function loadData(env) {
   const raw = await env.ask_kv.get(DATA_KEY);
   if (!raw) {
     return {
-      counters: { 단체: 0, 익명: 0, 기타: 0, answer: 0 },
+      counters: { question: 0, answer: 0 },
       questions: [],
       answers: [],
     };
@@ -156,8 +156,8 @@ export default {
         if (category === '기타' && !target) return json({ error: '받는 사람을 입력해주세요.' }, 400);
 
         const data = await loadData(env);
-        data.counters[category] += 1;
-        const num = data.counters[category];
+        data.counters.question = (data.counters.question || 0) + 1;
+        const num = data.counters.question;
         const qid = `${category}-${pad3(num)}`;
         const code = `${category} ${pad3(num)}`;
 

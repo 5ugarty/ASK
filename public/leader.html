@@ -116,6 +116,7 @@
   .item-linked-q{
     margin:0 14px 12px; padding:10px 12px; background:var(--paper); border:1px dashed var(--line);
     font-size:12px; color:var(--sub); white-space:pre-wrap; word-break:break-word;
+    width:fit-content; max-width:calc(100% - 28px);
   }
   .item-linked-q .lbl{ font-family:'JetBrains Mono', monospace; font-size:9px; display:block; margin-bottom:4px; }
   .item-linked-q .name{
@@ -406,7 +407,6 @@
           <div class="code-group"><span class="cat-tag">익명</span><span class="code mono">${escapeHTML(g.code)}</span></div>
         </div>
         <div class="item-linked-q">
-          <span class="lbl mono">원 질문</span>
           ${escapeHTML(g.questionText)}
         </div>
         <div class="answer-thread">
