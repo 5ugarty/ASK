@@ -624,7 +624,7 @@
     await Promise.all([
       document.fonts.load('400 200px "Abril Fatface"'),
       document.fonts.load('300 12px "Pretendard"'),
-      document.fonts.load('300 19px "Pretendard"'),
+      document.fonts.load('200 19px "Pretendard"'),
     ]);
     await document.fonts.ready;
 
@@ -672,7 +672,7 @@
     if(q.category === '기타' && q.target){
       bodyText = `TO. ${q.target}\n${q.text}`;
     }
-    ctx.font = '300 19px "Pretendard", sans-serif';
+    ctx.font = '200 19px "Pretendard", sans-serif';
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
     try{ ctx.letterSpacing = '-0.3px'; }catch(e){}
