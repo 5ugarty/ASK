@@ -9,7 +9,7 @@ run_worker_first = ["/api/*"]
 
 [[kv_namespaces]]
 binding = "ask_kv"
-id = "717e2896f473415797b7ac2f08f648ce"
+id = "42eb7857ce394d2db9426904e0fc95c1"
 
 [observability]
 enabled = true
