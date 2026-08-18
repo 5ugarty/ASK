@@ -149,11 +149,11 @@ export default {
         const body = await request.json();
         const category = body.category;
         const text = (body.text || '').trim().slice(0, 300);
-        const target = category === '기타' ? (body.target || '').trim().slice(0, 30) : null;
+        const target = category === '그룹' ? (body.target || '').trim().slice(0, 30) : null;
 
-        if (!['단체', '익명', '기타'].includes(category)) return json({ error: '잘못된 카테고리예요.' }, 400);
+        if (!['전체', '익명', '그룹'].includes(category)) return json({ error: '잘못된 카테고리예요.' }, 400);
         if (!text) return json({ error: '질문 내용을 입력해주세요.' }, 400);
-        if (category === '기타' && !target) return json({ error: '받는 사람을 입력해주세요.' }, 400);
+        if (category === '그룹' && !target) return json({ error: '받는 사람을 입력해주세요.' }, 400);
 
         const data = await loadData(env);
         data.counters.question = (data.counters.question || 0) + 1;

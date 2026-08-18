@@ -233,35 +233,35 @@
 
   <form class="form-card" id="ask-form">
     <div class="target-group" id="target-group">
-      <label class="target-option active" data-target="단체">
-        <input type="radio" name="target" value="단체" checked>
+      <label class="target-option active" data-target="전체">
+        <input type="radio" name="target" value="전체" checked>
         <div>
-          <div class="name">단체</div>
-          <div class="desc">YCC 멤버 전체에게</div>
+          <div class="name">전체</div>
+          <div class="desc">익명 질문 → 밴드 답변</div>
         </div>
-        <span class="badge-preview mono" id="preview-단체">단체 —</span>
+        <span class="badge-preview mono" id="preview-전체">전체 —</span>
+      </label>
+
+      <label class="target-option" data-target="그룹">
+        <input type="radio" name="target" value="그룹">
+        <div>
+          <div class="name">그룹</div>
+          <div class="desc">특정 그룹에게 질문 → 밴드 답변</div>
+        </div>
+        <span class="badge-preview mono" id="preview-그룹">그룹 —</span>
       </label>
 
       <label class="target-option" data-target="익명">
         <input type="radio" name="target" value="익명">
         <div>
           <div class="name">익명</div>
-          <div class="desc">승인 시 홈에 공개되는 질문</div>
+          <div class="desc">익명 질문 → 익명 답변</div>
         </div>
         <span class="badge-preview mono" id="preview-익명">익명 —</span>
       </label>
-
-      <label class="target-option" data-target="기타">
-        <input type="radio" name="target" value="기타">
-        <div>
-          <div class="name">기타</div>
-          <div class="desc">특정 멤버 지정</div>
-        </div>
-        <span class="badge-preview mono" id="preview-기타">기타 —</span>
-      </label>
     </div>
 
-    <input type="text" class="etc-input" id="etc-input" placeholder="받는 사람 이름을 적어주세요">
+    <input type="text" class="etc-input" id="etc-input" placeholder="그룹명을 적어주세요">
 
     <textarea id="question-text" placeholder="질문을 입력해주세요" maxlength="300"></textarea>
 
@@ -320,9 +320,9 @@
       const data = await res.json();
       document.getElementById('total-count').textContent = pad(data.total);
       const nextNum = pad((data.counters?.question || 0) + 1);
-      document.getElementById('preview-단체').textContent = '단체 ' + nextNum;
+      document.getElementById('preview-전체').textContent = '전체 ' + nextNum;
       document.getElementById('preview-익명').textContent = '익명 ' + nextNum;
-      document.getElementById('preview-기타').textContent = '기타 ' + nextNum;
+      document.getElementById('preview-그룹').textContent = '그룹 ' + nextNum;
       renderFeed(data.publicQuestions || []);
     }catch(e){
       console.error('데이터 로드 실패', e);
@@ -385,7 +385,7 @@
       options.forEach(o=>o.classList.remove('active'));
       opt.classList.add('active');
       opt.querySelector('input').checked = true;
-      etcInput.classList.toggle('show', opt.dataset.target === '기타');
+      etcInput.classList.toggle('show', opt.dataset.target === '그룹');
     });
   });
 
@@ -406,9 +406,9 @@
     if(!qText.value.trim()) return;
 
     const target = document.querySelector('input[name=target]:checked').value;
-    const targetName = target === '기타' ? etcInput.value.trim() : null;
-    if(target === '기타' && !targetName){
-      errorBox.textContent = '받는 사람을 입력해주세요.';
+    const targetName = target === '그룹' ? etcInput.value.trim() : null;
+    if(target === '그룹' && !targetName){
+      errorBox.textContent = '그룹명을 입력해주세요.';
       errorBox.classList.add('show');
       return;
     }
@@ -433,7 +433,7 @@
 
       qText.value = '';
       charNum.textContent = '0';
-      if(target === '기타') etcInput.value = '';
+      if(target === '그룹') etcInput.value = '';
 
       await loadPublicData();
       setTimeout(()=>{ toast.classList.remove('show'); }, 3200);

@@ -107,7 +107,7 @@
     font-size:9px; font-family:'JetBrains Mono', monospace; padding:2px 6px;
     border:1px solid var(--ink); color:var(--ink);
   }
-  .item-head .cat-tag.단체{ background:var(--ink); color:var(--white); border-color:var(--ink); }
+  .item-head .cat-tag.전체{ background:var(--ink); color:var(--white); border-color:var(--ink); }
   .item-head .time{ font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--sub); }
 
   .item-body{ padding:14px; font-size:14px; line-height:1.55; font-weight:500; white-space:pre-wrap; word-break:break-word; }
@@ -214,9 +214,9 @@
       </div>
       <div class="panel" id="sub-read">
         <div class="sub-tabs" id="read-cat-tabs">
-          <div class="sub-tab active" data-cat="단체">단체<span class="mono" id="read-cat-단체"></span></div>
+          <div class="sub-tab active" data-cat="전체">전체<span class="mono" id="read-cat-전체"></span></div>
           <div class="sub-tab" data-cat="익명">익명<span class="mono" id="read-cat-익명"></span></div>
-          <div class="sub-tab" data-cat="기타">기타<span class="mono" id="read-cat-기타"></span></div>
+          <div class="sub-tab" data-cat="그룹">그룹<span class="mono" id="read-cat-그룹"></span></div>
         </div>
         <div class="item-list" id="read-list"></div>
       </div>
@@ -305,7 +305,7 @@
     });
   });
 
-  let readCategoryFilter = '단체';
+  let readCategoryFilter = '전체';
   document.querySelectorAll('#read-cat-tabs .sub-tab').forEach(tab=>{
     tab.addEventListener('click', ()=>{
       document.querySelectorAll('#read-cat-tabs .sub-tab').forEach(t=>t.classList.remove('active'));
@@ -339,7 +339,7 @@
     return div.innerHTML;
   }
 
-  function catTagClass(cat){ return cat === '단체' ? 'cat-tag 단체' : 'cat-tag'; }
+  function catTagClass(cat){ return cat === '전체' ? 'cat-tag 전체' : 'cat-tag'; }
 
   function questionCardHTML(q){
     const isAnon = q.category === '익명';
@@ -353,7 +353,7 @@
       ? `<button class="act-btn" onclick="setStatus('${q.qid}', 'read')">확인</button>`
       : `<button class="act-btn ghost" onclick="setStatus('${q.qid}', 'unread')">미확인으로</button>`;
 
-    const etcLine = q.category === '기타' ? `<span class="etc-target">TO. ${escapeHTML(q.target)}</span>` : '';
+    const etcLine = q.category === '그룹' ? `<span class="etc-target">TO. ${escapeHTML(q.target)}</span>` : '';
     const statusPill = isAnon
       ? `<span class="status-pill ${q.public ? 'public' : 'private'}">${q.public ? '공개중' : '비공개'}</span>`
       : '';
@@ -440,7 +440,7 @@
       ? readFiltered.map(questionCardHTML).join('')
       : `<div class="empty-state">확인한 ${readCategoryFilter} 질문이 없어요</div>`;
 
-    ['단체','익명','기타'].forEach(cat=>{
+    ['전체','익명','그룹'].forEach(cat=>{
       const el = document.getElementById('read-cat-' + cat);
       if(el) el.textContent = ' (' + read.filter(q=>q.category===cat).length + ')';
     });
@@ -733,7 +733,7 @@
     // 질문지(카드) 레이어
     ctx.drawImage(sheetImg, 0, 0, IMG_SIZE, IMG_SIZE);
 
-    // 카테고리+번호 ("단체 #003" 스타일), 헤더 우측
+    // 카테고리+번호 ("전체 #003" 스타일), 헤더 우측
     ctx.font = '300 12px "Pretendard", sans-serif';
     ctx.fillStyle = '#000000';
     ctx.textAlign = 'right';
@@ -747,7 +747,7 @@
     const boxX = 437, boxY = 412, boxX2 = 871, boxY2 = 539;
     const boxCx = (boxX + boxX2) / 2, boxCy = (boxY + boxY2) / 2 - 8;
     let bodyText = q.text;
-    if(q.category === '기타' && q.target){
+    if(q.category === '그룹' && q.target){
       bodyText = `TO. ${q.target}\n${q.text}`;
     }
     ctx.font = '200 19px "Pretendard", sans-serif';
