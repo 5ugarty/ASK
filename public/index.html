@@ -357,7 +357,7 @@
             <button type="button" class="btn-send" onclick="sendAnswer(this)">답변 보내기</button>
           </div>
         </div>
-        <div class="sent-note">답변이 리더에게 전달됐어요. 이름: <span class="rand-name"></span></div>
+        <div class="sent-note">답변 완료<br>NAME: <span class="rand-name"></span></div>
       </div>
     `).join('');
 
@@ -452,27 +452,35 @@
   }
 
   /* ---------------- 내가 답변한 질문 로컬 표시 (완전 익명, 서버 전송 없음) ---------------- */
-  const ANSWERED_KEY = 'ycc_ask_answered_uids';
-  function getAnsweredIds(){
-    try{ return JSON.parse(localStorage.getItem(ANSWERED_KEY) || '[]'); }catch(e){ return []; }
+  const ANSWERED_KEY = 'ycc_ask_answered_map'; // { uid: randomName }
+  function getAnsweredMap(){
+    try{ return JSON.parse(localStorage.getItem(ANSWERED_KEY) || '{}'); }catch(e){ return {}; }
   }
-  function markAnsweredLocally(uid){
-    const ids = getAnsweredIds();
-    if(!ids.includes(uid)){
-      ids.push(uid);
-      try{ localStorage.setItem(ANSWERED_KEY, JSON.stringify(ids)); }catch(e){}
+  function markAnsweredLocally(uid, name){
+    const map = getAnsweredMap();
+    if(!map[uid]){
+      map[uid] = name;
+      try{ localStorage.setItem(ANSWERED_KEY, JSON.stringify(map)); }catch(e){}
     }
   }
   function applyAnsweredState(ticket){
     const uid = ticket.dataset.uid;
-    const answered = getAnsweredIds().includes(uid);
+    const map = getAnsweredMap();
+    const answered = !!map[uid];
     ticket.classList.toggle('answered', answered);
     ticket.querySelector('.answered-flag').classList.toggle('show', answered);
     const btn = ticket.querySelector('.btn-answer');
     btn.querySelector('.btn-label').textContent = answered ? '답변완료' : '답변하기';
     btn.querySelector('.arrow').style.display = answered ? 'none' : '';
     btn.disabled = answered;
-    if(answered){ ticket.querySelector('.answer-box').classList.remove('show'); }
+    const note = ticket.querySelector('.sent-note');
+    if(answered){
+      ticket.querySelector('.answer-box').classList.remove('show');
+      note.querySelector('.rand-name').textContent = map[uid];
+      note.classList.add('show');
+    } else {
+      note.classList.remove('show');
+    }
   }
 
   async function sendAnswer(btn){
@@ -493,17 +501,9 @@
         return;
       }
 
-      const note = ticket.querySelector('.sent-note');
-      note.querySelector('.rand-name').textContent = result.name;
-      note.classList.add('show');
-
-      ticket.querySelector('.answer-box').classList.remove('show');
       textarea.value = '';
-
-      markAnsweredLocally(ticket.dataset.uid);
+      markAnsweredLocally(ticket.dataset.uid, result.name);
       applyAnsweredState(ticket);
-
-      setTimeout(()=>{ note.classList.remove('show'); }, 3000);
     }catch(err){
       alert('네트워크 오류가 발생했어요.');
     }finally{
