@@ -71,9 +71,12 @@ async function loadData(env) {
       counters: { question: 0, answer: 0 },
       questions: [],
       answers: [],
+      blockedIPs: [],
     };
   }
-  return JSON.parse(raw);
+  const data = JSON.parse(raw);
+  if (!data.blockedIPs) data.blockedIPs = [];
+  return data;
 }
 
 async function saveData(env, data) {
@@ -158,6 +161,8 @@ export default {
 
       // ---- 공개: 질문 전송 ----
       if (path === '/api/questions' && method === 'POST') {
+        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+
         const body = await request.json();
         const category = body.category;
         const text = (body.text || '').trim().slice(0, 99);
@@ -168,6 +173,11 @@ export default {
         if (category === '그룹' && !target) return json({ error: '받는 사람을 입력해주세요.' }, 400);
 
         const data = await loadData(env);
+
+        if (data.blockedIPs.includes(ip)) {
+          return json({ error: '이용이 제한됐어요.' }, 403);
+        }
+
         data.counters.question = (data.counters.question || 0) + 1;
         const num = data.counters.question;
         const qid = `${category}-${pad3(num)}`;
@@ -178,6 +188,7 @@ export default {
           time: nowLabel(),
           status: 'unread',
           public: false,
+          ip,
         });
 
         await saveData(env, data);
@@ -193,12 +204,19 @@ export default {
 
       // ---- 공개: 익명 질문에 답변 ----
       if (path === '/api/answers' && method === 'POST') {
+        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+
         const body = await request.json();
         const qid = body.qid;
         const text = (body.text || '').trim().slice(0, 300);
         if (!text) return json({ error: '답변 내용을 입력해주세요.' }, 400);
 
         const data = await loadData(env);
+
+        if (data.blockedIPs.includes(ip)) {
+          return json({ error: '이용이 제한됐어요.' }, 403);
+        }
+
         const q = data.questions.find(x => x.qid === qid);
         if (!q || q.category !== '익명' || !q.public) {
           return json({ error: '답변할 수 없는 질문이에요.' }, 400);
@@ -215,6 +233,7 @@ export default {
           name,
           answerText: text,
           time: nowLabel(),
+          ip,
           read: false,
         });
 
@@ -308,6 +327,18 @@ export default {
         data.answers = data.answers.filter(x => x.qid !== qid);
         await saveData(env, data);
         return json({ ok: true });
+      }
+
+      // ---- 리더: IP 차단 (해당 질문을 보낸 IP를 차단 목록에 추가) ----
+      if (path.match(/^\/api\/leader\/questions\/[^/]+\/block-ip$/) && method === 'POST') {
+        const qid = decodeURIComponent(path.split('/')[4]);
+        const data = await loadData(env);
+        const q = data.questions.find(x => x.qid === qid);
+        if (!q) return json({ error: '질문을 찾을 수 없어요.' }, 404);
+        if (!q.ip || q.ip === 'unknown') return json({ error: '이 질문은 IP 정보가 없어서 차단할 수 없어요.' }, 400);
+        if (!data.blockedIPs.includes(q.ip)) data.blockedIPs.push(q.ip);
+        await saveData(env, data);
+        return json({ ok: true, ip: q.ip });
       }
 
       // ---- 리더: 답변 확인 상태 토글 ----

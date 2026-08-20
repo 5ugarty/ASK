@@ -155,6 +155,7 @@
   .act-btn.danger:hover{ background:var(--sub); color:var(--white); }
   .act-btn.ghost{ border-color:var(--line); color:var(--sub); }
   .act-btn.ghost:hover{ background:var(--paper); color:var(--ink); border-color:var(--ink); }
+  .act-btn:disabled{ cursor:default; opacity:0.5; pointer-events:none; }
 
   .status-pill{
     font-family:'JetBrains Mono', monospace; font-size:10px; padding:4px 9px;
@@ -232,6 +233,7 @@
 <script>
   let questions = [];
   let answers = [];
+  let blockedIPs = [];
 
   /* ---------------- 로그인 ---------------- */
   const pwInput = document.getElementById('pw-input');
@@ -326,6 +328,7 @@
       const data = await res.json();
       questions = data.questions || [];
       answers = data.answers || [];
+      blockedIPs = data.blockedIPs || [];
       render();
     }catch(e){
       console.error('데이터 로드 실패', e);
@@ -357,6 +360,11 @@
       ? `<span class="status-pill ${q.public ? 'public' : 'private'}">${q.public ? '공개중' : '비공개'}</span>`
       : '';
 
+    const isBlocked = q.ip && blockedIPs.includes(q.ip);
+    const blockBtn = isBlocked
+      ? `<button class="act-btn ghost" disabled title="이미 차단된 IP예요">차단됨</button>`
+      : `<button class="act-btn danger" onclick="blockIP('${q.qid}')">IP 차단</button>`;
+
     return `
       <div class="item-card" data-qid="${q.qid}">
         <span class="notch left"></span>
@@ -378,6 +386,7 @@
           ${readToggleBtn}
           <button class="act-btn ghost" onclick="downloadQuestionImage('${q.qid}')">이미지 저장</button>
           <button class="act-btn danger" onclick="deleteQuestion('${q.qid}')">삭제</button>
+          ${blockBtn}
         </div>
       </div>`;
   }
@@ -469,6 +478,16 @@
   async function deleteQuestion(qid){
     if(!confirm('이 질문을 삭제할까요? 연결된 답변도 함께 삭제돼요.')) return;
     await fetch(`/api/leader/questions/${encodeURIComponent(qid)}`, { method: 'DELETE' });
+    loadData();
+  }
+  async function blockIP(qid){
+    if(!confirm('이 질문을 보낸 IP를 차단할까요? 앞으로 이 IP에서는 질문/답변을 보낼 수 없게 돼요.')) return;
+    const res = await fetch(`/api/leader/questions/${encodeURIComponent(qid)}/block-ip`, { method: 'POST' });
+    const result = await res.json();
+    if(!res.ok){
+      alert(result.error || '차단에 실패했어요.');
+      return;
+    }
     loadData();
   }
   async function deleteAnswer(id){
