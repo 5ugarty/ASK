@@ -181,29 +181,30 @@
     cursor:default; pointer-events:none;
   }
 
-  .answered-flag{
-    display:none; align-items:center; gap:5px;
-    font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--sub);
-    margin-right:auto;
-  }
-  .answered-flag.show{ display:flex; }
-  .answered-flag .check{
-    width:15px; height:15px; border:1.5px solid var(--ink); border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    font-size:9px; color:var(--ink); flex:none;
-  }
-
   .answer-box{ display:none; padding: 0 14px 16px; }
   .answer-box.show{ display:block; }
   .answer-box textarea{ min-height:70px; font-size:13px; }
   .answer-box .submit-row{ margin-top:10px; }
   .answer-box .btn-send{ padding:9px 16px; font-size:13px; }
 
-  .sent-note{
-    display:none; font-family:'JetBrains Mono', monospace; font-size:11px;
-    color:var(--sub); padding:8px 14px 14px;
+  .answer-summary{
+    display:none; margin:0 14px 14px;
+    border:1.5px solid var(--ink); background:var(--paper);
   }
-  .sent-note.show{ display:block; }
+  .answer-summary.show{ display:block; }
+  .answer-summary .as-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 12px; border-bottom:1px dashed var(--ink);
+  }
+  .answer-summary .as-badge{
+    font-family:'JetBrains Mono', monospace; font-size:10px; font-weight:700;
+    background:var(--ink); color:var(--white); padding:3px 9px; letter-spacing:0.02em;
+  }
+  .answer-summary .as-name{ font-size:12px; font-weight:700; color:var(--ink); }
+  .answer-summary .as-body{
+    padding:12px; font-size:13px; line-height:1.6; font-weight:500; color:var(--ink);
+    white-space:pre-wrap; word-break:break-word;
+  }
 
   footer{
     max-width:480px; margin:32px auto 0; padding: 20px 16px 40px;
@@ -345,7 +346,6 @@
         </div>
         <div class="q-body">${escapeHTML(q.text)}</div>
         <div class="q-actions">
-          <span class="answered-flag"><span class="check">✓</span>내가 답변함</span>
           <button class="btn-answer" type="button" onclick="toggleAnswer(this)">
             <span class="btn-label">답변하기</span> <span class="arrow">→</span>
           </button>
@@ -357,7 +357,13 @@
             <button type="button" class="btn-send" onclick="sendAnswer(this)">답변 보내기</button>
           </div>
         </div>
-        <div class="sent-note">답변 완료<br>NAME: <span class="rand-name"></span><br>내용: <span class="my-answer-text"></span></div>
+        <div class="answer-summary">
+          <div class="as-head">
+            <span class="as-badge">✓ 답변 완료</span>
+            <span class="as-name mono"><span class="rand-name"></span></span>
+          </div>
+          <div class="as-body my-answer-text"></div>
+        </div>
       </div>
     `).join('');
 
@@ -469,18 +475,16 @@
     const entry = map[uid];
     const answered = !!entry;
     ticket.classList.toggle('answered', answered);
-    ticket.querySelector('.answered-flag').classList.toggle('show', answered);
-    const btn = ticket.querySelector('.btn-answer');
-    btn.querySelector('.btn-label').textContent = answered ? '답변완료' : '답변하기';
-    btn.querySelector('.arrow').style.display = answered ? 'none' : '';
-    btn.disabled = answered;
-    const note = ticket.querySelector('.sent-note');
+    const actions = ticket.querySelector('.q-actions');
+    const note = ticket.querySelector('.answer-summary');
     if(answered){
+      actions.style.display = 'none';
       ticket.querySelector('.answer-box').classList.remove('show');
       note.querySelector('.rand-name').textContent = entry.name;
       note.querySelector('.my-answer-text').textContent = entry.text || '';
       note.classList.add('show');
     } else {
+      actions.style.display = '';
       note.classList.remove('show');
     }
   }
