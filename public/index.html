@@ -263,10 +263,10 @@
 
     <input type="text" class="etc-input" id="etc-input" placeholder="그룹명을 적어주세요">
 
-    <textarea id="question-text" placeholder="질문을 입력해주세요" maxlength="100"></textarea>
+    <textarea id="question-text" placeholder="질문을 입력해주세요" maxlength="99"></textarea>
 
     <div class="submit-row">
-      <span class="char-count"><span id="char-num">0</span>/100</span>
+      <span class="char-count"><span id="char-num">0</span>/99</span>
       <button type="submit" class="btn-send" id="submit-btn">전송</button>
     </div>
 
@@ -357,7 +357,7 @@
             <button type="button" class="btn-send" onclick="sendAnswer(this)">답변 보내기</button>
           </div>
         </div>
-        <div class="sent-note">답변 완료<br>NAME: <span class="rand-name"></span></div>
+        <div class="sent-note">답변 완료<br>NAME: <span class="rand-name"></span><br>내용: <span class="my-answer-text"></span></div>
       </div>
     `).join('');
 
@@ -452,21 +452,22 @@
   }
 
   /* ---------------- 내가 답변한 질문 로컬 표시 (완전 익명, 서버 전송 없음) ---------------- */
-  const ANSWERED_KEY = 'ycc_ask_answered_map'; // { uid: randomName }
+  const ANSWERED_KEY = 'ycc_ask_answered_map'; // { uid: { name, text } }
   function getAnsweredMap(){
     try{ return JSON.parse(localStorage.getItem(ANSWERED_KEY) || '{}'); }catch(e){ return {}; }
   }
-  function markAnsweredLocally(uid, name){
+  function markAnsweredLocally(uid, name, text){
     const map = getAnsweredMap();
     if(!map[uid]){
-      map[uid] = name;
+      map[uid] = { name, text };
       try{ localStorage.setItem(ANSWERED_KEY, JSON.stringify(map)); }catch(e){}
     }
   }
   function applyAnsweredState(ticket){
     const uid = ticket.dataset.uid;
     const map = getAnsweredMap();
-    const answered = !!map[uid];
+    const entry = map[uid];
+    const answered = !!entry;
     ticket.classList.toggle('answered', answered);
     ticket.querySelector('.answered-flag').classList.toggle('show', answered);
     const btn = ticket.querySelector('.btn-answer');
@@ -476,7 +477,8 @@
     const note = ticket.querySelector('.sent-note');
     if(answered){
       ticket.querySelector('.answer-box').classList.remove('show');
-      note.querySelector('.rand-name').textContent = map[uid];
+      note.querySelector('.rand-name').textContent = entry.name;
+      note.querySelector('.my-answer-text').textContent = entry.text || '';
       note.classList.add('show');
     } else {
       note.classList.remove('show');
@@ -488,12 +490,13 @@
     const textarea = ticket.querySelector('.answer-box textarea');
     if(!textarea.value.trim()) return;
 
+    const myText = textarea.value;
     btn.disabled = true;
     try{
       const res = await fetch('/api/answers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qid: ticket.dataset.qid, text: textarea.value }),
+        body: JSON.stringify({ qid: ticket.dataset.qid, text: myText }),
       });
       const result = await res.json();
       if(!res.ok){
@@ -502,7 +505,7 @@
       }
 
       textarea.value = '';
-      markAnsweredLocally(ticket.dataset.uid, result.name);
+      markAnsweredLocally(ticket.dataset.uid, result.name, myText);
       applyAnsweredState(ticket);
     }catch(err){
       alert('네트워크 오류가 발생했어요.');

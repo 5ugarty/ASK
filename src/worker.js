@@ -37,10 +37,16 @@ async function notifyLeader(env, ctx, subject, text) {
   if (ctx && ctx.waitUntil) ctx.waitUntil(send); else await send;
 }
 
-function randomName() {
-  const a = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-  const b = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
-  return `${a} ${b}`;
+function randomName(existingNames) {
+  const used = new Set(existingNames || []);
+  let name, tries = 0;
+  do {
+    const a = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+    const b = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
+    name = `${a} ${b}`;
+    tries += 1;
+  } while (used.has(name) && tries < 30);
+  return name;
 }
 
 function pad3(n) {
@@ -154,7 +160,7 @@ export default {
       if (path === '/api/questions' && method === 'POST') {
         const body = await request.json();
         const category = body.category;
-        const text = (body.text || '').trim().slice(0, 300);
+        const text = (body.text || '').trim().slice(0, 99);
         const target = category === '그룹' ? (body.target || '').trim().slice(0, 30) : null;
 
         if (!['전체', '익명', '그룹'].includes(category)) return json({ error: '잘못된 카테고리예요.' }, 400);
@@ -200,7 +206,8 @@ export default {
 
         data.counters.answer += 1;
         const id = data.counters.answer;
-        const name = randomName();
+        const existingNames = data.answers.filter(a => a.qid === qid).map(a => a.name);
+        const name = randomName(existingNames);
 
         data.answers.push({
           id, qid,
