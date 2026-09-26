@@ -114,8 +114,9 @@
   .item-body .etc-target{ display:block; font-size:11px; color:var(--sub); font-family:'JetBrains Mono', monospace; margin-bottom:6px; }
 
   .item-linked-q{
-    margin:0 14px 12px; padding:0;
-    font-size:14px; font-weight:400; color:var(--ink); white-space:pre-wrap; word-break:break-word;
+    margin:0 14px 12px; padding:10px 12px; background:var(--paper); border:1px dashed var(--line);
+    font-size:12px; color:var(--sub); white-space:pre-wrap; word-break:break-word;
+    width:fit-content; max-width:calc(100% - 28px);
   }
   .item-linked-q .lbl{ font-family:'JetBrains Mono', monospace; font-size:9px; display:block; margin-bottom:4px; }
   .item-linked-q .name{
@@ -192,6 +193,7 @@
       </div>
       <div style="display:flex; gap:8px;">
         <a href="/" class="btn-logout" style="text-decoration:none; display:inline-block;">홈으로</a>
+        <button class="btn-logout" id="reset-btn" style="color:var(--sub); border-color:var(--line);">초기화</button>
         <button class="btn-logout" id="logout-btn">로그아웃</button>
       </div>
     </div>
@@ -271,6 +273,23 @@
     document.getElementById('leader-screen').classList.remove('show');
     document.getElementById('login-screen').style.display = 'flex';
     pwInput.value = '';
+  });
+
+  document.getElementById('reset-btn').addEventListener('click', async ()=>{
+    if(!confirm('질문/답변/번호를 전부 지우고 처음 상태로 되돌릴까요?\n이 작업은 되돌릴 수 없어요.')) return;
+    const typed = prompt('정말 초기화하려면 "초기화"라고 입력해주세요.');
+    if(typed !== '초기화'){
+      alert('입력이 일치하지 않아 취소됐어요.');
+      return;
+    }
+    try{
+      const res = await fetch('/api/leader/reset', { method: 'POST' });
+      if(!res.ok) throw new Error('실패');
+      alert('초기화됐어요.');
+      loadData();
+    }catch(e){
+      alert('초기화에 실패했어요.');
+    }
   });
 
   function showLeader(){
@@ -480,6 +499,12 @@
     await fetch(`/api/leader/questions/${encodeURIComponent(qid)}`, { method: 'DELETE' });
     loadData();
   }
+  async function deleteAnswer(id){
+    if(!confirm('이 답변을 삭제할까요?')) return;
+    await fetch(`/api/leader/answers/${id}`, { method: 'DELETE' });
+    loadData();
+  }
+
   async function blockIP(qid){
     if(!confirm('이 질문을 보낸 IP를 차단할까요? 앞으로 이 IP에서는 질문/답변을 보낼 수 없게 돼요.')) return;
     const res = await fetch(`/api/leader/questions/${encodeURIComponent(qid)}/block-ip`, { method: 'POST' });
@@ -488,11 +513,6 @@
       alert(result.error || '차단에 실패했어요.');
       return;
     }
-    loadData();
-  }
-  async function deleteAnswer(id){
-    if(!confirm('이 답변을 삭제할까요?')) return;
-    await fetch(`/api/leader/answers/${id}`, { method: 'DELETE' });
     loadData();
   }
 

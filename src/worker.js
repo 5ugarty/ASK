@@ -329,18 +329,6 @@ export default {
         return json({ ok: true });
       }
 
-      // ---- 리더: IP 차단 (해당 질문을 보낸 IP를 차단 목록에 추가) ----
-      if (path.match(/^\/api\/leader\/questions\/[^/]+\/block-ip$/) && method === 'POST') {
-        const qid = decodeURIComponent(path.split('/')[4]);
-        const data = await loadData(env);
-        const q = data.questions.find(x => x.qid === qid);
-        if (!q) return json({ error: '질문을 찾을 수 없어요.' }, 404);
-        if (!q.ip || q.ip === 'unknown') return json({ error: '이 질문은 IP 정보가 없어서 차단할 수 없어요.' }, 400);
-        if (!data.blockedIPs.includes(q.ip)) data.blockedIPs.push(q.ip);
-        await saveData(env, data);
-        return json({ ok: true, ip: q.ip });
-      }
-
       // ---- 리더: 답변 확인 상태 토글 ----
       if (path.match(/^\/api\/leader\/answers\/[^/]+\/read$/) && method === 'POST') {
         const id = Number(path.split('/')[4]);
@@ -359,6 +347,30 @@ export default {
         const data = await loadData(env);
         data.answers = data.answers.filter(x => x.id !== id);
         await saveData(env, data);
+        return json({ ok: true });
+      }
+
+      // ---- 리더: IP 차단 (해당 질문을 보낸 IP를 차단 목록에 추가) ----
+      if (path.match(/^\/api\/leader\/questions\/[^/]+\/block-ip$/) && method === 'POST') {
+        const qid = decodeURIComponent(path.split('/')[4]);
+        const data = await loadData(env);
+        const q = data.questions.find(x => x.qid === qid);
+        if (!q) return json({ error: '질문을 찾을 수 없어요.' }, 404);
+        if (!q.ip || q.ip === 'unknown') return json({ error: '이 질문은 IP 정보가 없어서 차단할 수 없어요.' }, 400);
+        if (!data.blockedIPs.includes(q.ip)) data.blockedIPs.push(q.ip);
+        await saveData(env, data);
+        return json({ ok: true, ip: q.ip });
+      }
+
+      // ---- 리더: 전체 초기화 (질문/답변/번호 전부 비우기) ----
+      if (path === '/api/leader/reset' && method === 'POST') {
+        const fresh = {
+          counters: { question: 0, answer: 0 },
+          questions: [],
+          answers: [],
+          blockedIPs: [],
+        };
+        await saveData(env, fresh);
         return json({ ok: true });
       }
 
