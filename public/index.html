@@ -247,8 +247,8 @@
       <label class="target-option" data-target="그룹">
         <input type="radio" name="target" value="그룹">
         <div>
-          <div class="name">그룹</div>
-          <div class="desc">특정 그룹에게 질문 → 밴드 답변</div>
+          <div class="name">Y에게</div>
+          <div class="desc">특정인 혹은 그룹에게 질문 → 밴드 답변</div>
         </div>
         <span class="badge-preview mono" id="preview-그룹">그룹 —</span>
       </label>
@@ -263,9 +263,9 @@
       </label>
     </div>
 
-    <input type="text" class="etc-input" id="etc-input" placeholder="그룹명을 적어주세요">
+    <input type="text" class="etc-input" id="etc-input" placeholder="특정인, 그룹명">
 
-    <textarea id="question-text" placeholder="질문을 입력해주세요" maxlength="99"></textarea>
+    <textarea id="question-text" placeholder="질문 입력" maxlength="99"></textarea>
 
     <div class="submit-row">
       <span class="char-count"><span id="char-num">0</span>/99</span>
@@ -315,7 +315,6 @@
     return `${get('hour').padStart(2,'0')}:${get('minute')} ${get('dayPeriod')}`;
   }
 
-  /* ---------------- 데이터 로드 ---------------- */
   async function loadPublicData(){
     try{
       const res = await fetch('/api/public/data');
@@ -384,7 +383,6 @@
 
   loadPublicData();
 
-  /* ---------------- 대상 선택 UI ---------------- */
   const options = document.querySelectorAll('.target-option');
   const etcInput = document.getElementById('etc-input');
   options.forEach(opt=>{
@@ -396,12 +394,10 @@
     });
   });
 
-  /* ---------------- 글자 수 카운트 ---------------- */
   const qText = document.getElementById('question-text');
   const charNum = document.getElementById('char-num');
   qText.addEventListener('input', ()=>{ charNum.textContent = qText.value.length; });
 
-  /* ---------------- 질문 전송 ---------------- */
   const form = document.getElementById('ask-form');
   const toast = document.getElementById('ticket-toast');
   const submitBtn = document.getElementById('submit-btn');
@@ -452,13 +448,11 @@
     }
   });
 
-  /* ---------------- 답변 열기/닫기 ---------------- */
   function toggleAnswer(btn){
     const box = btn.closest('.q-ticket').querySelector('.answer-box');
     box.classList.toggle('show');
   }
 
-  /* ---------------- 내가 답변한 질문 로컬 표시 (완전 익명, 서버 전송 없음) ---------------- */
   const ANSWERED_KEY = 'ycc_ask_answered_map'; // { uid: { name, text } }
   function getAnsweredMap(){
     try{ return JSON.parse(localStorage.getItem(ANSWERED_KEY) || '{}'); }catch(e){ return {}; }
