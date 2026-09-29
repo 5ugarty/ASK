@@ -666,7 +666,7 @@
     ctx.translate(290, 278);
     ctx.rotate(-6 * Math.PI / 180);
     ctx.font = '400 200px "Abril Fatface", serif';
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = q.category === '익명' ? '#E4002B' : '#FFFFFF';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     try{ ctx.letterSpacing = '-6px'; }catch(e){}
