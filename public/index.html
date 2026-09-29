@@ -95,10 +95,14 @@
   .opt-btn:active{ transform:scale(0.97); }
   .opt-btn:disabled{
     cursor:not-allowed;
-    background-image: repeating-linear-gradient(45deg, rgba(220,38,38,0.6) 0 3px, transparent 3px 9px);
+    background-image: repeating-linear-gradient(45deg, rgba(220,38,38,0.75) 0 1.5px, transparent 1.5px 6px);
   }
   .opt-btn.sel-a.active{ background:#000; border-color:#000; color:#fff; }
   .opt-btn.sel-b.active{ background:#000; border-color:#000; color:#fff; }
+  .opt-btn.sel-a.active:disabled, .opt-btn.sel-b.active:disabled{
+    background-color:#000; border-color:#000; color:#fff;
+    background-image: repeating-linear-gradient(45deg, rgba(220,38,38,0.75) 0 1.5px, transparent 1.5px 6px);
+  }
   .opt-btn.pass{ flex:0.7; font-size:13px; font-weight:600; }
 
   .jump-bar{ position:sticky; top:0; z-index:10; background:var(--bg); padding:8px 0; margin-bottom:10px; }
