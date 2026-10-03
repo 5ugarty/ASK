@@ -91,6 +91,16 @@
   .loading-state{ text-align:center; padding:40px 16px; color:var(--sub); font-size:13px; font-family:'JetBrains Mono', monospace; }
 
   .item-list{ display:flex; flex-direction:column; gap:14px; }
+  .ans-group{ display:flex; flex-direction:column; gap:14px; }
+  .ans-subhead{
+    display:flex; align-items:center; gap:8px; margin:4px 0 2px;
+    font-size:12px; font-weight:700; color:var(--ink);
+  }
+  .ans-subhead .ash-dot{ width:8px; height:8px; border-radius:50%; background:var(--ink); flex:none; }
+  .ans-subhead.done .ash-dot{ background:var(--line); }
+  .ans-subhead.done{ color:var(--sub); }
+  .ans-subhead .ash-count{ color:var(--sub); font-size:11px; }
+  .ans-subhead::after{ content:''; flex:1; height:1px; background:var(--line); }
 
   .item-card{ background:var(--white); border:2px solid var(--ink); position:relative; }
   .item-card .notch{ position:absolute; top:47px; width:14px; height:14px; background:var(--paper); border-radius:50%; transform:translateY(-50%); }
@@ -406,22 +416,8 @@
       </div>`;
   }
 
-  function renderAnswerGroups(){
-    if(!answers.length) return `<div class="empty-state">아직 답변이 없어요</div>`;
-
-    const groups = [];
-    const groupMap = {};
-    answers.forEach(a=>{
-      if(!groupMap[a.qid]){
-        const q = questions.find(x=>x.qid===a.qid);
-        const group = { qid:a.qid, code: q ? q.code : a.qid, questionText: a.questionText, items: [] };
-        groupMap[a.qid] = group;
-        groups.push(group);
-      }
-      groupMap[a.qid].items.push(a);
-    });
-
-    return groups.map(g => `
+  function answerGroupCardHTML(g){
+    return `
       <div class="item-card">
         <span class="notch left"></span>
         <span class="notch right"></span>
@@ -445,7 +441,49 @@
             </div>
           `).join('')}
         </div>
-      </div>`).join('');
+      </div>`;
+  }
+
+  function renderAnswerGroups(){
+    if(!answers.length) return `<div class="empty-state">아직 답변이 없어요</div>`;
+
+    const groups = [];
+    const groupMap = {};
+    answers.forEach(a=>{
+      if(!groupMap[a.qid]){
+        const q = questions.find(x=>x.qid===a.qid);
+        const group = { qid:a.qid, code: q ? q.code : a.qid, questionText: a.questionText, items: [] };
+        groupMap[a.qid] = group;
+        groups.push(group);
+      }
+      groupMap[a.qid].items.push(a);
+    });
+
+    const unreadGroups = groups.filter(g => g.items.some(a => !a.read));
+    const readGroups = groups.filter(g => g.items.every(a => a.read));
+
+    let html = '';
+    if(unreadGroups.length){
+      html += `
+        <div class="ans-subhead">
+          <span class="ash-dot"></span>
+          <span class="ash-txt">미확인</span>
+          <span class="ash-count mono">${unreadGroups.length}</span>
+        </div>
+        <div class="ans-group">${unreadGroups.map(answerGroupCardHTML).join('')}</div>
+      `;
+    }
+    if(readGroups.length){
+      html += `
+        <div class="ans-subhead done">
+          <span class="ash-dot"></span>
+          <span class="ash-txt">확인함</span>
+          <span class="ash-count mono">${readGroups.length}</span>
+        </div>
+        <div class="ans-group">${readGroups.map(answerGroupCardHTML).join('')}</div>
+      `;
+    }
+    return html || `<div class="empty-state">아직 답변이 없어요</div>`;
   }
 
   function render(){

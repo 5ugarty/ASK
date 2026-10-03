@@ -153,7 +153,19 @@
     text-align:center; padding:40px 20px; color:var(--sub); font-size:13px;
     border:1.5px dashed var(--line);
   }
-  .feed{ display:flex; flex-direction:column; gap:16px; }
+  .feed{ display:flex; flex-direction:column; }
+  .feed-group{ display:flex; flex-direction:column; gap:16px; margin-bottom:28px; }
+  .feed-subhead{
+    display:flex; align-items:center; gap:8px; margin:0 0 12px;
+    font-size:12px; font-weight:700; color:var(--ink);
+  }
+  .feed-subhead .fsh-dot{
+    width:8px; height:8px; border-radius:50%; background:var(--ink); flex:none;
+  }
+  .feed-subhead.done .fsh-dot{ background:var(--line); }
+  .feed-subhead.done{ color:var(--sub); }
+  .feed-subhead .fsh-count{ color:var(--sub); font-size:11px; }
+  .feed-subhead::after{ content:''; flex:1; height:1px; background:var(--line); }
 
   .q-ticket{ background:var(--white); border:2px solid var(--ink); position:relative; }
   .q-ticket .stub{
@@ -330,13 +342,8 @@
     }
   }
 
-  function renderFeed(list){
-    const feed = document.getElementById('feed');
-    if(!list.length){
-      feed.innerHTML = '<div class="feed-empty">아직 공개된 익명 질문이 없어요</div>';
-      return;
-    }
-    feed.innerHTML = list.map(q => `
+  function ticketHTML(q){
+    return `
       <div class="q-ticket" data-qid="${q.qid}" data-uid="${q.uid}">
         <span class="notch left"></span>
         <span class="notch right"></span>
@@ -365,7 +372,46 @@
           <div class="as-body my-answer-text"></div>
         </div>
       </div>
-    `).join('');
+    `;
+  }
+
+  function renderFeed(list){
+    const feed = document.getElementById('feed');
+    if(!list.length){
+      feed.innerHTML = '<div class="feed-empty">아직 공개된 익명 질문이 없어요</div>';
+      return;
+    }
+
+    const answeredMap = getAnsweredMap();
+    const unanswered = list.filter(q => !answeredMap[q.uid]);
+    const answered = list.filter(q => answeredMap[q.uid]);
+
+    let html = '';
+    if(unanswered.length){
+      html += `
+        <div class="feed-subhead">
+          <span class="fsh-dot"></span>
+          <span class="fsh-txt">아직 답변 안 한 질문</span>
+          <span class="fsh-count mono">${unanswered.length}</span>
+        </div>
+        <div class="feed-group">${unanswered.map(ticketHTML).join('')}</div>
+      `;
+    }
+    if(answered.length){
+      html += `
+        <div class="feed-subhead done">
+          <span class="fsh-dot"></span>
+          <span class="fsh-txt">내가 답변한 질문</span>
+          <span class="fsh-count mono">${answered.length}</span>
+        </div>
+        <div class="feed-group">${answered.map(ticketHTML).join('')}</div>
+      `;
+    }
+    if(!unanswered.length && !answered.length){
+      html = '<div class="feed-empty">아직 공개된 익명 질문이 없어요</div>';
+    }
+
+    feed.innerHTML = html;
 
     document.querySelectorAll('.q-ticket[data-qid]').forEach(applyAnsweredState);
     document.querySelectorAll('.answer-box textarea').forEach(ta=>{
