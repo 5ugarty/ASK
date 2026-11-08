@@ -180,6 +180,15 @@
     max-width:520px; margin:0 auto; padding: 20px 16px 40px; text-align:center;
     font-size:10px; color:var(--sub); font-family:'JetBrains Mono', monospace; border-top:1px solid var(--line);
   }
+  .modal-bg{ position:fixed; inset:0; background:rgba(10,10,10,.45); display:none; align-items:center; justify-content:center; padding:20px; z-index:100; }
+  .modal-bg.show{ display:flex; }
+  .modal{ background:var(--white); border:2px solid var(--ink); width:100%; max-width:440px; padding:18px; }
+  .modal h3{ margin:0 0 6px; font-size:15px; }
+  .modal p{ margin:0 0 10px; font-size:12px; color:var(--sub); line-height:1.5; }
+  .modal textarea{ width:100%; box-sizing:border-box; min-height:170px; border:1.5px solid var(--ink); padding:10px; font-size:13px; font-family:inherit; resize:vertical; background:var(--paper); }
+  .modal .preview{ margin-top:10px; padding:10px; border:1px dashed var(--line); font-size:12px; line-height:1.6; white-space:pre-wrap; min-height:20px; }
+  .modal .preview.bad{ color:var(--sub); }
+  .modal .row{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
 </style>
 </head>
 <body>
@@ -203,6 +212,7 @@
       </div>
       <div style="display:flex; gap:8px;">
         <a href="/" class="btn-logout" style="text-decoration:none; display:inline-block;">홈으로</a>
+        <button class="btn-logout" id="manual-btn" title="텔레그램 알림 내용을 붙여넣어서 직접 추가해요">직접 추가</button>
         <button class="btn-logout" id="recover-btn" title="알림은 왔는데 화면에 없는 질문/답변을 찾아서 다시 넣어요">누락 확인</button>
         <button class="btn-logout" id="reset-btn" style="color:var(--sub); border-color:var(--line);">초기화</button>
         <button class="btn-logout" id="logout-btn">로그아웃</button>
@@ -241,6 +251,19 @@
   </main>
 
   <footer>YCC ASK — LEADER PANEL</footer>
+</div>
+
+<div class="modal-bg" id="manual-modal">
+  <div class="modal">
+    <h3>알림으로 직접 추가</h3>
+    <p>텔레그램 알림 메시지를 길게 눌러 복사한 뒤 그대로 붙여넣으세요. 질문 알림과 답변 알림 둘 다 돼요.</p>
+    <textarea id="manual-text" placeholder="[YCC ASK] 새 답변 도착 · 익명 027&#10;&#10;원 질문: ...&#10;&#10;답변 (다정한 수달):&#10;셔터맨"></textarea>
+    <div class="preview bad" id="manual-preview">붙여넣으면 여기에 읽은 내용이 보여요.</div>
+    <div class="row">
+      <button class="btn-logout" id="manual-cancel" style="color:var(--sub); border-color:var(--line);">취소</button>
+      <button class="btn-logout" id="manual-submit" disabled>추가</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -299,6 +322,91 @@
       loadData();
     }catch(e){
       alert('초기화에 실패했어요.');
+    }
+  });
+
+  /* ---------- 텔레그램 알림 붙여넣기 → 직접 추가 ---------- */
+  function parseNotification(raw){
+    // 텔레그램에서 복사할 때 붙는 '[오후 11:21]' 같은 앞머리, 윈도우 줄바꿈 정리
+    const t = raw.replace(/\r/g, '').replace(/^\s*\[[^\]]*\d{1,2}:\d{2}[^\]]*\]\s*[^\n]*:\s*\n?/m, '').trim();
+
+    let m = t.match(/새 답변 도착\s*·\s*(익명|전체|그룹)\s*(\d+)/);
+    if(m){
+      const code = `${m[1]} ${String(Number(m[2])).padStart(3,'0')}`;
+      const am = t.match(/답변\s*\(([^)]*)\)\s*:\s*\n([\s\S]*?)(?:\n\s*\n\s*리더 화면[^\n]*)?\s*$/);
+      if(!am) return null;
+      const text = am[2].replace(/\n\s*리더 화면[^\n]*$/, '').trim();
+      if(!text) return null;
+      return { type:'answer', code, name: am[1].trim(), text };
+    }
+
+    m = t.match(/새 질문 도착\s*·\s*(익명|전체|그룹)\s*(\d+)/);
+    if(m){
+      const category = m[1], num = Number(m[2]);
+      // 본문 구조: 제목 / 코드 / 시간 / (빈 줄) / 내용 / (빈 줄) / TO. 대상 / (빈 줄) / 리더 화면…
+      let rest = t.slice(t.indexOf(m[0]) + m[0].length);
+      rest = rest.replace(/\n\s*리더 화면에서 확인하세요\.?\s*$/, '');
+      const lines = rest.split('\n');
+      let time = null;
+      const timeIdx = lines.findIndex(l => /^\s*\d{2}\.\d{2}\s+\d{2}:\d{2}\s*(AM|PM)\s*$/i.test(l));
+      let bodyLines = lines;
+      if(timeIdx >= 0){ time = lines[timeIdx].trim(); bodyLines = lines.slice(timeIdx + 1); }
+      let body = bodyLines.join('\n').trim();
+      let target = null;
+      const tm = body.match(/\n\s*\n\s*TO\.\s*([^\n]+)\s*$/);
+      if(tm){ target = tm[1].trim(); body = body.slice(0, tm.index).trim(); }
+      if(!body) return null;
+      return { type:'question', category, num, text: body, target, time };
+    }
+    return null;
+  }
+
+  const manualModal = document.getElementById('manual-modal');
+  const manualText = document.getElementById('manual-text');
+  const manualPreview = document.getElementById('manual-preview');
+  const manualSubmit = document.getElementById('manual-submit');
+  let manualParsed = null;
+
+  function updateManualPreview(){
+    manualParsed = parseNotification(manualText.value);
+    manualSubmit.disabled = !manualParsed;
+    manualPreview.classList.toggle('bad', !manualParsed);
+    if(!manualText.value.trim()){
+      manualPreview.textContent = '붙여넣으면 여기에 읽은 내용이 보여요.';
+    } else if(!manualParsed){
+      manualPreview.textContent = '알림 형식을 알아보지 못했어요. 알림 메시지 전체를 그대로 붙여넣어 주세요.';
+    } else if(manualParsed.type === 'answer'){
+      manualPreview.textContent = `답변 · ${manualParsed.code}\n${manualParsed.name}: ${manualParsed.text}`;
+    } else {
+      manualPreview.textContent = `질문 · ${manualParsed.category} ${String(manualParsed.num).padStart(3,'0')}\n${manualParsed.text}${manualParsed.target ? `\nTO. ${manualParsed.target}` : ''}`;
+    }
+  }
+  manualText.addEventListener('input', updateManualPreview);
+  document.getElementById('manual-btn').addEventListener('click', ()=>{
+    manualText.value = '';
+    updateManualPreview();
+    manualModal.classList.add('show');
+    manualText.focus();
+  });
+  document.getElementById('manual-cancel').addEventListener('click', ()=> manualModal.classList.remove('show'));
+  manualModal.addEventListener('click', (e)=>{ if(e.target === manualModal) manualModal.classList.remove('show'); });
+  manualSubmit.addEventListener('click', async ()=>{
+    if(!manualParsed) return;
+    manualSubmit.disabled = true;
+    try{
+      const res = await fetch('/api/leader/manual-add', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(manualParsed),
+      });
+      const result = await res.json();
+      if(!res.ok){ alert(result.error || '추가에 실패했어요.'); return; }
+      manualModal.classList.remove('show');
+      alert(result.type === 'answer' ? `${result.code} 답변함에 추가했어요.` : `${result.code} 질문을 미확인함에 추가했어요.`);
+      loadData();
+    }catch(e){
+      alert('추가에 실패했어요. 잠시 후 다시 시도해주세요.');
+    }finally{
+      manualSubmit.disabled = !manualParsed;
     }
   });
 
@@ -380,6 +488,10 @@
       answers = data.answers || [];
       blockedIPs = data.blockedIPs || [];
       render();
+      const rc = data.recovered;
+      if(rc && (rc.questions || rc.answers)){
+        alert(`사라졌던 항목을 자동으로 되살렸어요.\n질문 ${rc.questions}개 · 답변 ${rc.answers}개`);
+      }
     }catch(e){
       console.error('데이터 로드 실패', e);
     }

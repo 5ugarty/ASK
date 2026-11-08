@@ -387,8 +387,11 @@ export default {
 
       // ---- 리더: 전체 데이터 ----
       if (path === '/api/leader/data' && method === 'GET') {
+        // 리더 화면을 열 때마다 백업과 자동 비교해서, 덮어써져 사라진 항목을 알아서 되살림
+        let recovered = { questions: 0, answers: 0 };
+        try { recovered = await recoverMissing(env); } catch (err) { console.error('자동 복구 실패', err); }
         const data = await loadData(env);
-        return json(data);
+        return json({ ...data, recovered });
       }
 
       // ---- 리더: 질문 상태(읽음/미읽음) 변경 ----
@@ -473,6 +476,80 @@ export default {
       if (path === '/api/leader/recover' && method === 'POST') {
         const result = await recoverMissing(env);
         return json({ ok: true, recovered: result });
+      }
+
+      // ---- 리더: 알림 내용으로 직접 추가 (백업 기능 이전에 사라진 항목용) ----
+      if (path === '/api/leader/manual-add' && method === 'POST') {
+        const body = await request.json();
+        const data = await loadData(env);
+
+        if (body.type === 'answer') {
+          const code = (body.code || '').trim();
+          const name = (body.name || '').trim().slice(0, 40);
+          const text = (body.text || '').trim().slice(0, 300);
+          if (!code || !text) return json({ error: '질문 번호와 답변 내용을 읽지 못했어요.' }, 400);
+          const q = data.questions.find(x => x.code === code);
+          if (!q) return json({ error: `${code} 질문이 없어요. 질문이 삭제됐거나 질문도 함께 사라졌을 수 있어요.` }, 404);
+          if (data.answers.some(a => a.qid === q.qid && a.answerText === text && (!name || a.name === name))) {
+            return json({ error: '이미 들어 있는 답변이에요.' }, 409);
+          }
+          data.counters.answer = Math.max(data.counters.answer || 0, 0, ...data.answers.map(a => a.id || 0)) + 1;
+          const used = data.answers.filter(a => a.qid === q.qid).map(a => a.name);
+          const logKey = `${LOG_PREFIX}a:${crypto.randomUUID()}`;
+          const newA = {
+            id: data.counters.answer, qid: q.qid,
+            questionText: q.text,
+            name: name || randomName(used),
+            answerText: text,
+            time: body.time || nowLabel(),
+            ip: 'manual',
+            read: false,
+            logKey,
+          };
+          data.answers.push(newA);
+          await saveData(env, data);
+          await writeLog(env, ctx, logKey, newA);
+          return json({ ok: true, type: 'answer', code: q.code });
+        }
+
+        if (body.type === 'question') {
+          const category = body.category;
+          const text = (body.text || '').trim().slice(0, 99);
+          const target = category === '그룹' ? (body.target || '').trim().slice(0, 30) || null : null;
+          if (!['전체', '익명', '그룹'].includes(category) || !text) {
+            return json({ error: '질문 종류나 내용을 읽지 못했어요.' }, 400);
+          }
+          if (data.questions.some(x => x.text === text && x.category === category)) {
+            return json({ error: '이미 들어 있는 질문이에요.' }, 409);
+          }
+          let num = Number(body.num) || 0;
+          const taken = n => data.questions.some(x => x.qid === `${category}-${pad3(n)}`);
+          if (!num || taken(num)) {
+            // 원래 번호를 다른 질문이 쓰고 있으면 새 번호
+            data.counters.question = (data.counters.question || 0) + 1;
+            while (taken(data.counters.question)) data.counters.question += 1;
+            num = data.counters.question;
+          } else {
+            data.counters.question = Math.max(data.counters.question || 0, num);
+          }
+          const uid = crypto.randomUUID();
+          const logKey = `${LOG_PREFIX}q:${uid}`;
+          const newQ = {
+            qid: `${category}-${pad3(num)}`, uid, category,
+            code: `${category} ${pad3(num)}`, text, target,
+            time: body.time || nowLabel(),
+            status: 'unread',
+            public: false,
+            ip: 'manual',
+            logKey,
+          };
+          data.questions.push(newQ);
+          await saveData(env, data);
+          await writeLog(env, ctx, logKey, newQ);
+          return json({ ok: true, type: 'question', code: newQ.code });
+        }
+
+        return json({ error: '알림 형식을 알아보지 못했어요.' }, 400);
       }
 
       // ---- 리더: 전체 초기화 (질문/답변/번호 전부 비우기) ----
