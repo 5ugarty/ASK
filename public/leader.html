@@ -203,6 +203,7 @@
       </div>
       <div style="display:flex; gap:8px;">
         <a href="/" class="btn-logout" style="text-decoration:none; display:inline-block;">홈으로</a>
+        <button class="btn-logout" id="recover-btn" title="알림은 왔는데 화면에 없는 질문/답변을 찾아서 다시 넣어요">누락 확인</button>
         <button class="btn-logout" id="reset-btn" style="color:var(--sub); border-color:var(--line);">초기화</button>
         <button class="btn-logout" id="logout-btn">로그아웃</button>
       </div>
@@ -298,6 +299,30 @@
       loadData();
     }catch(e){
       alert('초기화에 실패했어요.');
+    }
+  });
+
+  const recoverBtn = document.getElementById('recover-btn');
+  recoverBtn.addEventListener('click', async ()=>{
+    const label = recoverBtn.textContent;
+    recoverBtn.disabled = true;
+    recoverBtn.textContent = '확인 중…';
+    try{
+      const res = await fetch('/api/leader/recover', { method: 'POST' });
+      const result = await res.json();
+      if(!res.ok) throw new Error(result.error || '실패');
+      const { questions: rq, answers: ra } = result.recovered;
+      if(rq || ra){
+        alert(`빠져 있던 항목을 복구했어요.\n질문 ${rq}개 · 답변 ${ra}개`);
+      } else {
+        alert('빠진 항목이 없어요.\n(방금 들어온 건 반영까지 1분 정도 걸릴 수 있어요)');
+      }
+      loadData();
+    }catch(e){
+      alert('확인에 실패했어요. 잠시 후 다시 시도해주세요.');
+    }finally{
+      recoverBtn.disabled = false;
+      recoverBtn.textContent = label;
     }
   });
 
