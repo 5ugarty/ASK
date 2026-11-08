@@ -1,0 +1,15 @@
+name = "ask"
+main = "src/worker.js"
+compatibility_date = "2026-08-02"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[kv_namespaces]]
+binding = "ask_kv"
+id = "42eb7857ce394d2db9426904e0fc95c1"
+
+[observability]
+enabled = true
